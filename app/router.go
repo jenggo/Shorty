@@ -3,6 +3,7 @@ package app
 import (
 	"shorty/app/routes"
 
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -11,6 +12,13 @@ func router(app *fiber.App) {
 	app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")
 	})
+
+	// UI
+	app.Static("/css", "ui/css", fiber.Static{Compress: true}) // For static css/js
+	app.Get("/", routes.HTMLMain)
+	app.Post("/login", routes.HTMLLogin)
+	app.Get("/logout", routes.HTMLLogout)
+	app.Get("/ws", routes.Upgrade, websocket.New(routes.Websocket))
 
 	// GetURL
 	app.Get("/:shorty", routes.Get)

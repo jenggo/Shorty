@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"shorty/config"
+	"shorty/types"
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -64,6 +65,29 @@ func (r *redis) Get(key string) (string, error) {
 	}
 
 	return string(data), err
+}
+
+func (r *redis) GetAll() (datas []types.Shorten, err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	iter := r.client.Scan(ctx, 0, "*", 0).Iterator()
+	for iter.Next(ctx) {
+		url, err := r.Get(iter.Val())
+		if err != nil {
+			log.Error().Caller().Err(err).Send()
+			continue
+		}
+
+		datas = append(datas, types.Shorten{
+			Url:    url,
+			Shorty: iter.Val(),
+		})
+	}
+
+	err = iter.Err()
+
+	return
 }
 
 func (r *redis) Del(key string) error {

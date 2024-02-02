@@ -17,6 +17,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
+	"github.com/gofiber/template/html/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -29,6 +30,7 @@ func RunServer() (app *fiber.App, err error) {
 		ErrorHandler:          errHandler,
 		ReadTimeout:           10 * time.Second,
 		ProxyHeader:           "Cf-Connecting-Ip",
+		Views:                 html.New("ui", ".tpl"),
 	}
 
 	if !config.Use.App.Cloudflare {
@@ -62,6 +64,11 @@ func RunServer() (app *fiber.App, err error) {
 }
 
 func errHandler(c *fiber.Ctx, err error) error {
+	statusCode := c.Response().StatusCode()
+	if statusCode == fiber.StatusNotFound || statusCode == fiber.StatusOK {
+		return nil
+	}
+
 	code := fiber.StatusInternalServerError
 	var e *fiber.Error
 	if errors.As(err, &e) {
@@ -88,15 +95,18 @@ func loggerConfig() (cfg logger.Config) {
 	level := config.Use.App.LogLevel
 
 	if level < 3 {
-		format += "» ${blue}${reqHeader:Authorization}${reset}\n» Error: ${red}${error}${reset}\n» Header: ${yellow}${reqHeaders}${reset}\n"
+		format += "» ${blue}${reqHeader:Authorization}${reset}\n» Error: ${red}${error}${reset}\n» Header: ${cyan}${reqHeaders}${reset}\n"
 
-		if level < 1 {
+		if level < 2 {
 			format += "» Body: ${body}\n\n"
 		}
 	}
 
 	return logger.Config{
-		Next:       func(c *fiber.Ctx) bool { return c.Response().StatusCode() == fiber.StatusNotFound },
+		Next: func(c *fiber.Ctx) bool {
+			statusCode := c.Response().StatusCode()
+			return statusCode == fiber.StatusNotFound || statusCode == fiber.StatusOK
+		},
 		Format:     format,
 		TimeFormat: "2006-01-02T15:04:05",
 		Output:     os.Stderr, // If using os.Stdout, log does not colorize

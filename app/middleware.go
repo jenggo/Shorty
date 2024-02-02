@@ -1,7 +1,6 @@
 package app
 
 import (
-	"crypto/sha512"
 	"fmt"
 	"shorty/config"
 	"shorty/pkg"
@@ -11,6 +10,7 @@ import (
 	"github.com/gofiber/keyauth/v2"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/blake2b"
 )
 
 func verifyKey() func(*fiber.Ctx) error {
@@ -34,7 +34,11 @@ func verifyAPIKey(hashed string) error {
 
 	h := []byte(hashed)
 	i := []byte(config.Use.App.Key)
-	k := sha512.New()
+	k, err := blake2b.New256(nil)
+	if err != nil {
+		log.Error().Caller().Err(err).Send()
+		return err
+	}
 	k.Write(i)
 	hash := k.Sum(nil)
 

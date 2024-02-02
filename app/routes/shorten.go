@@ -33,7 +33,7 @@ func Shorten(ctx *fiber.Ctx) error {
 			return fmt.Errorf("%s already had shorten url %s", body.Url, shortUrl)
 		}
 
-		body.Shorty = gouid.String(8, gouid.MixedCaseAlphaNum)
+		body.Shorty = gouid.String(8, gouid.Secure32Char)
 	}
 
 	if err := pkg.Redis.Set(body.Shorty, body.Url, body.Expired); err != nil {
