@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"os"
 	"shorty/config"
 	"shorty/types"
 	"strings"
@@ -109,7 +108,7 @@ func loggerConfig() (cfg logger.Config) {
 		},
 		Format:     format,
 		TimeFormat: "2006-01-02T15:04:05",
-		Output:     os.Stderr, // If using os.Stdout, log does not colorize
+		Output:     log.Logger,
 	}
 }
 

@@ -41,10 +41,6 @@ func Websocket(c *websocket.Conn) {
 	c.EnableWriteCompression(true)
 
 	for {
-		if c == nil {
-			break
-		}
-
 		lists, err := pkg.Redis.GetAll()
 		if err != nil {
 			log.Error().Caller().Err(err).Send()
