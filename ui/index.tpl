@@ -22,6 +22,7 @@
       <thead>
         <th>Shorty</th>
         <th>Url</th>
+        <th>Expired</th>
       </thead>
       <tbody id="tbody"></tbody>
     </table>

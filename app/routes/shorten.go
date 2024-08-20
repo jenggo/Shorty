@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+
 	"shorty/pkg"
 	"shorty/types"
 
@@ -28,7 +29,7 @@ func Shorten(ctx *fiber.Ctx) error {
 	}
 
 	if body.Shorty == "" {
-		shortUrl, err := pkg.Redis.Get(body.Url)
+		shortUrl, err := pkg.Redis.Get(ctx.Context(), body.Url)
 		if err == nil {
 			return fmt.Errorf("%s already had shorten url %s", body.Url, shortUrl)
 		}
@@ -36,7 +37,7 @@ func Shorten(ctx *fiber.Ctx) error {
 		body.Shorty = gouid.String(8, gouid.Secure32Char)
 	}
 
-	if err := pkg.Redis.Set(body.Shorty, body.Url, body.Expired); err != nil {
+	if err := pkg.Redis.Set(ctx.Context(), body.Shorty, body.Url, body.Expired); err != nil {
 		return err
 	}
 

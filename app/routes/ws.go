@@ -2,9 +2,11 @@ package routes
 
 import (
 	"bytes"
-	"shorty/pkg"
+	"context"
 	"text/template"
 	"time"
+
+	"shorty/pkg"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -40,8 +42,11 @@ func Websocket(c *websocket.Conn) {
 	var w bytes.Buffer
 	c.EnableWriteCompression(true)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	for {
-		lists, err := pkg.Redis.GetAll()
+		lists, err := pkg.Redis.GetAll(ctx)
 		if err != nil {
 			log.Error().Caller().Err(err).Send()
 			break

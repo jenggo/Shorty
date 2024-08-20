@@ -2,7 +2,7 @@ package config
 
 const (
 	AppName    string = "Shorty"
-	AppVersion string = "v0.0.1"
+	AppVersion string = "v0.0.2"
 )
 
 var Use config
@@ -14,6 +14,10 @@ type config struct {
 		LogLevel   int8   `yaml:"log_level" env:"LOG_LEVEL" env-default:"2"` // 0: debug, 1: info, 2: warning, 3: error, 4: fatal, 5: panic
 		Cloudflare bool   `yaml:"cloudflare" env:"CLOUDFLARE" env-default:"true"`
 		Key        string `yaml:"key" env:"KEY" env-required:"true"`
+		Auth       struct {
+			User     string `yaml:"user" env:"AUTH_USER" env-default:"admin"`
+			Password string `yaml:"password" env:"AUTH_PASSWORD" env-required:"true"`
+		} `yaml:"auth"`
 	} `yaml:"app"`
 
 	Redis struct {

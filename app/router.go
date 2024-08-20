@@ -28,4 +28,5 @@ func router(app *fiber.App) {
 	v1.Post("/shorty", routes.Shorten)   // Create short url
 	v1.Delete("/:shorty", routes.Delete) // Delete url
 	v1.Patch("/:shorty", routes.Change)  // Edit url
+	v1.Get("/list", routes.List)         // List all urls
 }

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+
 	"shorty/pkg"
 	"shorty/types"
 
@@ -10,11 +11,11 @@ import (
 
 func Delete(ctx *fiber.Ctx) error {
 	shorturl := ctx.Params("shorty")
-	if _, err := pkg.Redis.Get(shorturl); err != nil {
+	if _, err := pkg.Redis.Get(ctx.Context(), shorturl); err != nil {
 		return err
 	}
 
-	if err := pkg.Redis.Del(shorturl); err != nil {
+	if err := pkg.Redis.Del(ctx.Context(), shorturl); err != nil {
 		return err
 	}
 

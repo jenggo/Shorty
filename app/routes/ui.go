@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"shorty/config"
 	"shorty/types"
 
 	"github.com/gofiber/fiber/v2"
@@ -37,7 +38,7 @@ func HTMLLogin(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	if body.Username != "admin" || !checkPassword(body.Password) {
+	if body.Username != config.Use.App.Auth.User || !checkPassword(body.Password) {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
 			Error:   true,
 			Message: "Invalid credentials",
@@ -76,7 +77,7 @@ func HTMLLogout(ctx *fiber.Ctx) error {
 }
 
 func checkPassword(input string) bool {
-	pass := []byte("Appropriations.Comforts.Potpies.2571")
+	pass := []byte(config.Use.App.Auth.Password)
 	hashed := []byte(input)
 
 	if err := bcrypt.CompareHashAndPassword(hashed, pass); err != nil {

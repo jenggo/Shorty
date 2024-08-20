@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"fmt"
+	"time"
+
 	"shorty/config"
 	"shorty/pkg"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/keyauth/v2"
@@ -16,7 +18,7 @@ import (
 func verifyKey() func(*fiber.Ctx) error {
 	return keyauth.New(keyauth.Config{
 		Validator: func(c *fiber.Ctx, key string) (bool, error) {
-			if err := verifyAPIKey(key); err != nil {
+			if err := verifyAPIKey(c.Context(), key); err != nil {
 				log.Error().Caller().Err(err).Str("path", c.Path()).Str("hash", key).Send()
 				return false, keyauth.ErrMissingOrMalformedAPIKey
 			}
@@ -27,8 +29,8 @@ func verifyKey() func(*fiber.Ctx) error {
 	})
 }
 
-func verifyAPIKey(hashed string) error {
-	if _, err := pkg.RedisAuth.Get(hashed); err == nil {
+func verifyAPIKey(ctx context.Context, hashed string) error {
+	if _, err := pkg.RedisAuth.Get(ctx, hashed); err == nil {
 		return fmt.Errorf("%s already used", hashed)
 	}
 
@@ -46,5 +48,5 @@ func verifyAPIKey(hashed string) error {
 		return err
 	}
 
-	return pkg.RedisAuth.Set(hashed, hash, 10*time.Minute)
+	return pkg.RedisAuth.Set(ctx, hashed, hash, 10*time.Minute)
 }

@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
+
 	"shorty/config"
 	"shorty/types"
-	"time"
 
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
@@ -48,17 +49,11 @@ func (r *redis) Close() {
 	}
 }
 
-func (r *redis) Set(key string, value interface{}, ttl time.Duration) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func (r *redis) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	return r.client.Set(ctx, key, value, ttl).Err()
 }
 
-func (r *redis) Get(key string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func (r *redis) Get(ctx context.Context, key string) (string, error) {
 	data, err := r.client.Get(ctx, key).Bytes()
 	if err == goredis.Nil {
 		err = fmt.Errorf("not found %s", key)
@@ -67,21 +62,15 @@ func (r *redis) Get(key string) (string, error) {
 	return string(data), err
 }
 
-func (r *redis) GetAll() (datas []types.Shorten, err error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func (r *redis) GetAll(ctx context.Context) (datas []types.Shorten, err error) {
 	iter := r.client.Scan(ctx, 0, "*", 0).Iterator()
 	for iter.Next(ctx) {
-		url, err := r.Get(iter.Val())
-		if err != nil {
-			log.Error().Caller().Err(err).Send()
-			continue
-		}
-
+		url := r.client.Get(ctx, iter.Val()).Val()
+		expired := r.client.TTL(ctx, iter.Val())
 		datas = append(datas, types.Shorten{
-			Url:    url,
-			Shorty: iter.Val(),
+			Url:     url,
+			Shorty:  iter.Val(),
+			Expired: expired.Val(),
 		})
 	}
 
@@ -90,9 +79,6 @@ func (r *redis) GetAll() (datas []types.Shorten, err error) {
 	return
 }
 
-func (r *redis) Del(key string) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func (r *redis) Del(ctx context.Context, key string) error {
 	return r.client.Del(ctx, key).Err()
 }
