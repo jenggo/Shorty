@@ -21,6 +21,7 @@
     <table role="grid">
       <thead>
         <th>Shorty</th>
+        <th>File</th>
         <th>Url</th>
         <th>Expired</th>
       </thead>

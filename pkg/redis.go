@@ -3,7 +3,10 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"mime"
 	"net"
+	"net/url"
+	"path/filepath"
 	"time"
 
 	"shorty/config"
@@ -69,6 +72,7 @@ func (r *redis) GetAll(ctx context.Context) (datas []types.Shorten, err error) {
 		expired := r.client.TTL(ctx, iter.Val())
 		datas = append(datas, types.Shorten{
 			Url:     url,
+			File:    getFile(url),
 			Shorty:  iter.Val(),
 			Expired: expired.Val(),
 		})
@@ -77,6 +81,18 @@ func (r *redis) GetAll(ctx context.Context) (datas []types.Shorten, err error) {
 	err = iter.Err()
 
 	return
+}
+
+func getFile(input string) string {
+	u, _ := url.Parse(input)
+	transform := filepath.Base(u.Path)
+	ext := filepath.Ext(transform)
+	test := mime.TypeByExtension(ext)
+	if test != "" {
+		return transform
+	}
+
+	return test
 }
 
 func (r *redis) Del(ctx context.Context, key string) error {
