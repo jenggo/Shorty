@@ -15,7 +15,6 @@ var store = session.New()
 func HTMLMain(ctx *fiber.Ctx) error {
 	sess, err := store.Get(ctx)
 	if err != nil {
-		log.Error().Caller().Err(err).Send()
 		return err
 	}
 
@@ -34,7 +33,6 @@ func HTMLLogin(ctx *fiber.Ctx) error {
 	}
 
 	if err := ctx.BodyParser(&body); err != nil {
-		log.Error().Caller().Err(err).Send()
 		return err
 	}
 
@@ -47,12 +45,10 @@ func HTMLLogin(ctx *fiber.Ctx) error {
 
 	sess, err := store.Get(ctx)
 	if err != nil {
-		log.Error().Caller().Err(err).Send()
 		return err
 	}
 	sess.Set("name", body.Username)
 	if err := sess.Save(); err != nil {
-		log.Error().Caller().Err(err).Send()
 		return err
 	}
 
@@ -65,11 +61,10 @@ func HTMLLogin(ctx *fiber.Ctx) error {
 func HTMLLogout(ctx *fiber.Ctx) error {
 	sess, err := store.Get(ctx)
 	if err != nil {
-		log.Error().Caller().Err(err).Send()
+		return err
 	}
 
 	if err := sess.Destroy(); err != nil {
-		log.Error().Caller().Err(err).Send()
 		return err
 	}
 

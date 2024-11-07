@@ -30,6 +30,10 @@ func verifyKey() func(*fiber.Ctx) error {
 }
 
 func verifyAPIKey(ctx context.Context, hashed string) error {
+	if config.Use.App.Token != "" && hashed == config.Use.App.Token {
+		return nil
+	}
+
 	if _, err := pkg.RedisAuth.Get(ctx, hashed); err == nil {
 		return fmt.Errorf("%s already used", hashed)
 	}

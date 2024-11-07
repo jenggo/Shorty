@@ -4,6 +4,7 @@ import (
 	"shorty/pkg"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 func Get(ctx *fiber.Ctx) error {
@@ -11,11 +12,8 @@ func Get(ctx *fiber.Ctx) error {
 
 	realurl, err := pkg.Redis.Get(ctx.Context(), shorturl)
 	if err != nil {
-		return ctx.SendStatus(fiber.StatusNotFound)
-	}
-
-	if realurl == "" {
-		return ctx.SendStatus(fiber.StatusNotFound)
+		log.Error().Err(err).Send()
+		return err
 	}
 
 	return ctx.Redirect(realurl, fiber.StatusPermanentRedirect)

@@ -26,7 +26,11 @@ func main() {
 		TimeFormat: "[Mon] [2006-01-02] [15:04:05]",
 	}).With().Timestamp().Logger()
 
-	var err error
+	// Run server
+	server, err := app.RunServer()
+	if err != nil {
+		log.Error().Err(err).Send()
+	}
 
 	// Open Redis connection for every DB
 	pkg.Redis, err = pkg.NewRedis()
@@ -39,23 +43,19 @@ func main() {
 		log.Error().Err(err).Send()
 	}
 
-	// Run server
-	server, err := app.RunServer()
-	if err != nil {
-		log.Error().Err(err).Send()
-	}
+	defer func() {
+		// Close redis connection
+		pkg.Redis.Close()
+		pkg.RedisAuth.Close()
+
+		// Shutdown server
+		if err := server.Shutdown(); err != nil {
+			log.Error().Err(err).Send()
+		}
+	}()
 
 	// Handle graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
-
-	// Close redis connection
-	pkg.Redis.Close()
-	pkg.RedisAuth.Close()
-
-	// Shutdown server
-	if err := server.Shutdown(); err != nil {
-		log.Error().Err(err).Send()
-	}
 }

@@ -16,7 +16,6 @@ import (
 func Upgrade(ctx *fiber.Ctx) error {
 	sess, err := store.Get(ctx)
 	if err != nil {
-		log.Error().Caller().Err(err).Send()
 		return err
 	}
 

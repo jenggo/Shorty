@@ -52,7 +52,22 @@ func (r *redis) Close() {
 	}
 }
 
-func (r *redis) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (r *redis) Set(ctx context.Context, key string, value interface{}, ttl time.Duration, checkFirst ...bool) error {
+	if ttl < 1 {
+		ttl = 30 * time.Minute
+	}
+
+	if len(checkFirst) > 0 && checkFirst[0] {
+		added, err := r.client.SAdd(ctx, "all_values", value).Result()
+		if err != nil {
+			return err
+		}
+
+		if added == 0 {
+			return fmt.Errorf("%s already exists", value)
+		}
+	}
+
 	return r.client.Set(ctx, key, value, ttl).Err()
 }
 
@@ -68,6 +83,10 @@ func (r *redis) Get(ctx context.Context, key string) (string, error) {
 func (r *redis) GetAll(ctx context.Context) (datas []types.Shorten, err error) {
 	iter := r.client.Scan(ctx, 0, "*", 0).Iterator()
 	for iter.Next(ctx) {
+		if iter.Val() == "all_values" {
+			continue
+		}
+
 		url := r.client.Get(ctx, iter.Val()).Val()
 		expired := r.client.TTL(ctx, iter.Val())
 		datas = append(datas, types.Shorten{

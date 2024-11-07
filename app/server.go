@@ -63,10 +63,10 @@ func RunServer() (app *fiber.App, err error) {
 }
 
 func errHandler(c *fiber.Ctx, err error) error {
-	statusCode := c.Response().StatusCode()
-	if statusCode == fiber.StatusNotFound || statusCode == fiber.StatusOK {
-		return nil
-	}
+	// statusCode := c.Response().StatusCode()
+	// if statusCode == fiber.StatusNotFound || statusCode == fiber.StatusOK {
+	// 	return nil
+	// }
 
 	code := fiber.StatusInternalServerError
 	var e *fiber.Error
