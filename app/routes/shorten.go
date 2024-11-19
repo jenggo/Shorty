@@ -26,7 +26,9 @@ func Shorten(ctx *fiber.Ctx) error {
 		return fmt.Errorf("cannot reach %s, status code: %d, errors: %v", body.Url, statusCode, errs)
 	}
 
-	body.Shorty = pkg.HumanFriendlyEnglishString(8)
+	if body.Shorty == "" {
+		body.Shorty = pkg.HumanFriendlyEnglishString(8)
+	}
 
 	if err := pkg.Redis.Set(ctx.Context(), body.Shorty, body.Url, body.Expired, true); err != nil {
 		return err
