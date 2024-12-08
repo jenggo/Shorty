@@ -14,10 +14,12 @@ func router(app *fiber.App) {
 	})
 
 	// UI
-	app.Static("/css", "ui/css", fiber.Static{Compress: true}) // For static css/js
-	app.Get("/", routes.HTMLMain)
-	app.Post("/login", routes.HTMLLogin)
-	app.Get("/logout", routes.HTMLLogout)
+	app.Static("/", "ui", fiber.Static{Compress: true})
+	app.Post("/login", routes.UILogin)
+	app.Get("/logout", routes.UILogout)
+	app.Delete("/:shorty", routes.UIDelete)
+	app.Patch("/:oldName/:newName", routes.UIChange)
+	app.Post("/shorty", routes.UICreate)
 	app.Get("/ws", routes.Upgrade, websocket.New(routes.Websocket))
 
 	// GetURL

@@ -43,7 +43,12 @@ func RunServer() (app *fiber.App, err error) {
 		app.Use(pprof.New(pprof.Config{Prefix: config.Use.App.PPROF}))
 	}
 
-	app.Use(cors.New())
+	app.Use(cors.New(cors.Config{
+		// AllowOriginsFunc: func(origin string) bool { return true }, // debugging only
+		AllowOrigins:     "https://u.nusatek.dev",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowCredentials: true,
+	}))
 	app.Use(favicon.New())
 	app.Use(logger.New(loggerConfig()))
 	app.Use(helmet.New())
@@ -55,7 +60,7 @@ func RunServer() (app *fiber.App, err error) {
 		log.Log().Msgf("» %s %s listen: %s", config.AppName, config.AppVersion, config.Use.App.Listen)
 
 		if err := app.Listen(config.Use.App.Listen); err != nil {
-			log.Fatal().Caller().Err(err).Send()
+			log.Error().Caller().Err(err).Send()
 		}
 	}()
 
@@ -63,11 +68,6 @@ func RunServer() (app *fiber.App, err error) {
 }
 
 func errHandler(c *fiber.Ctx, err error) error {
-	// statusCode := c.Response().StatusCode()
-	// if statusCode == fiber.StatusNotFound || statusCode == fiber.StatusOK {
-	// 	return nil
-	// }
-
 	code := fiber.StatusInternalServerError
 	var e *fiber.Error
 	if errors.As(err, &e) {

@@ -2,7 +2,7 @@ package config
 
 const (
 	AppName    string = "Shorty"
-	AppVersion string = "v0.0.3"
+	AppVersion string = "v0.0.4"
 )
 
 var Use config

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"errors"
 	"shorty/config"
 	"shorty/types"
 
@@ -10,75 +11,138 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var store = session.New()
+var (
+	store                 = session.New()
+	ErrUnauthorized       = errors.New("unauthorized access")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+)
 
-func HTMLMain(ctx *fiber.Ctx) error {
+type loginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func validatePassword(hashedPassword, plainPassword string) bool {
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword)); err != nil {
+		log.Error().Err(err).Msg("password validation failed")
+		return false
+	}
+
+	return true
+}
+
+func getSession(ctx *fiber.Ctx) (*session.Session, error) {
 	sess, err := store.Get(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get session")
+		return nil, err
+	}
+
+	return sess, nil
+}
+
+func validateSession(ctx *fiber.Ctx) error {
+	sess, err := getSession(ctx)
 	if err != nil {
 		return err
 	}
 
-	if name := sess.Get("name"); name == nil {
-		return ctx.Render("login", nil)
+	if sess.Get("name") == nil {
+		return ErrUnauthorized
 	}
 
-	return ctx.Render("index", nil)
+	return nil
 }
 
-// JSON Response
-func HTMLLogin(ctx *fiber.Ctx) error {
-	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-
-	if err := ctx.BodyParser(&body); err != nil {
-		return err
-	}
-
-	if body.Username != config.Use.App.Auth.User || !checkPassword(body.Password) {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
+func UILogin(ctx *fiber.Ctx) error {
+	var req loginRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(types.Response{
 			Error:   true,
-			Message: "Invalid credentials",
+			Message: "invalid request body",
 		})
 	}
 
-	sess, err := store.Get(ctx)
-	if err != nil {
-		return err
+	if req.Username != config.Use.App.Auth.User ||
+		!validatePassword(req.Password, config.Use.App.Auth.Password) {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
+			Error:   true,
+			Message: ErrInvalidCredentials.Error(),
+		})
 	}
-	sess.Set("name", body.Username)
+
+	sess, err := getSession(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
+			Error:   true,
+			Message: "session error",
+		})
+	}
+
+	sess.Set("name", req.Username)
 	if err := sess.Save(); err != nil {
-		return err
+		log.Error().Err(err).Msg("failed to save session")
+		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
+			Error:   true,
+			Message: "failed to create session",
+		})
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(types.Response{
 		Error:   false,
-		Message: "Authorized",
+		Message: "authorized",
 	})
 }
 
-func HTMLLogout(ctx *fiber.Ctx) error {
-	sess, err := store.Get(ctx)
+func UILogout(ctx *fiber.Ctx) error {
+	sess, err := getSession(ctx)
 	if err != nil {
-		return err
+		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
+			Error:   true,
+			Message: "session error",
+		})
 	}
 
 	if err := sess.Destroy(); err != nil {
-		return err
+		log.Error().Err(err).Msg("failed to destroy session")
+		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
+			Error:   true,
+			Message: "failed to logout",
+		})
 	}
 
 	return ctx.Redirect("/")
 }
 
-func checkPassword(input string) bool {
-	pass := []byte(config.Use.App.Auth.Password)
-	hashed := []byte(input)
-
-	if err := bcrypt.CompareHashAndPassword(hashed, pass); err != nil {
-		log.Error().Err(err).Send()
-		return false
+func UICreate(ctx *fiber.Ctx) error {
+	if err := validateSession(ctx); err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
+			Error:   true,
+			Message: err.Error(),
+		})
 	}
 
-	return true
+	return Shorten(ctx)
+}
+
+func UIDelete(ctx *fiber.Ctx) error {
+	if err := validateSession(ctx); err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
+			Error:   true,
+			Message: err.Error(),
+		})
+	}
+
+	return Delete(ctx)
+}
+
+func UIChange(ctx *fiber.Ctx) error {
+	if err := validateSession(ctx); err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
+			Error:   true,
+			Message: err.Error(),
+		})
+	}
+
+	return Change(ctx)
 }
