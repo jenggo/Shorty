@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { WS_BASE_URL } from '$lib/config';
+	import { WS_BASE_URL, API_BASE_URL } from '$lib/config';
 	import { api } from '$lib/api';
 	import Loading from '$lib/components/Loading.svelte';
 	import { auth } from '$lib/stores/auth';
@@ -68,8 +68,16 @@
 
 			ws.onclose = () => {
 				console.log('WebSocket disconnected');
-				// Optionally implement reconnection logic here
-				setTimeout(connectWebSocket, 5000); // Reconnect after 5 seconds
+				Swal.fire({
+					title: 'Connection Lost',
+					text: 'Your session has been disconnected. You will be logged out.',
+					icon: 'warning',
+					showConfirmButton: false,
+					timer: 2000,
+					timerProgressBar: true
+				}).then(() => {
+					location.assign(`${API_BASE_URL}`);
+				});
 			};
 		} catch (err) {
 			error = 'Failed to connect to WebSocket: ' + err;
@@ -138,11 +146,11 @@
 		}
 	}
 
-	function formatExpiry(seconds: string): string {
-		const secs = parseInt(seconds);
+	function formatExpiry(nanoseconds: string): string {
+		const secs = parseInt(nanoseconds) / 1e9;
 
 		if (secs < 60) {
-			return `${secs}s`;
+			return `${Math.round(secs)}s`;
 		} else if (secs < 3600) {
 			return `${Math.floor(secs / 60)}m`;
 		} else if (secs < 86400) {

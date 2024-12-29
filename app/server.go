@@ -79,7 +79,7 @@ func errHandler(c *fiber.Ctx, err error) error {
 	method := c.Method()
 	path := c.Path()
 
-	if ua != "" && ip != "" {
+	if ua != "" && ip != "" && code != 404 {
 		log.Error().Str("UserAgent", ua).Str("IP", ip).Str("Method", method).Str("Path", path).Err(err).Send()
 	}
 

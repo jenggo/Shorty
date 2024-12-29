@@ -4,7 +4,6 @@ import (
 	"shorty/pkg"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/zerolog/log"
 )
 
 func Get(ctx *fiber.Ctx) error {
@@ -12,7 +11,6 @@ func Get(ctx *fiber.Ctx) error {
 
 	realurl, err := pkg.Redis.Get(ctx.Context(), shorturl)
 	if err != nil {
-		log.Error().Err(err).Send()
 		return err
 	}
 

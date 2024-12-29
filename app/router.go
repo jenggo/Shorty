@@ -9,20 +9,19 @@ import (
 
 func router(app *fiber.App) {
 	// For ping-pong
-	app.Get("/ping", func(c *fiber.Ctx) error {
-		return c.SendString("pong")
-	})
+	app.Get("/ping", func(ctx *fiber.Ctx) error { return ctx.SendString("pong") })
 
 	// UI
 	app.Static("/", "ui", fiber.Static{Compress: true})
-	app.Post("/login", routes.UILogin)
+	app.Get("/login", func(ctx *fiber.Ctx) error { return ctx.Redirect("/") })
 	app.Get("/logout", routes.UILogout)
-	app.Delete("/:shorty", routes.UIDelete)
-	app.Patch("/:oldName/:newName", routes.UIChange)
-	app.Post("/shorty", routes.UICreate)
 	app.Get("/ws", routes.Upgrade, websocket.New(routes.Websocket))
+	app.Post("/login", routes.UILogin)
+	app.Post("/shorty", routes.UICreate)
+	app.Patch("/:oldName/:newName", routes.UIChange)
+	app.Delete("/:shorty", routes.UIDelete)
 
-	// GetURL
+	// Get real url
 	app.Get("/:shorty", routes.Get)
 
 	// API group

@@ -15,6 +15,7 @@ type config struct {
 		Cloudflare bool   `yaml:"cloudflare" env:"CLOUDFLARE" env-default:"true"`
 		Key        string `yaml:"key" env:"KEY" env-required:"true"`
 		Token      string `yaml:"token" env:"TOKEN"`
+		Sentry     string `yaml:"sentry" env:"SENTRY"`
 		Auth       struct {
 			User     string `yaml:"user" env:"AUTH_USER" env-default:"admin"`
 			Password string `yaml:"password" env:"AUTH_PASSWORD" env-required:"true"`

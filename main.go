@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"os/signal"
 	"shorty/app"
@@ -8,6 +9,7 @@ import (
 	"shorty/pkg"
 	"syscall"
 
+	"github.com/archdx/zerolog-sentry"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -21,10 +23,25 @@ func main() {
 
 	// Set logger (zerolog)
 	zerolog.SetGlobalLevel(zerolog.Level(config.Use.App.LogLevel))
-	log.Logger = zerolog.New(zerolog.ConsoleWriter{
+	var writeLog io.Writer = zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: "[Mon] [2006-01-02] [15:04:05]",
-	}).With().Timestamp().Logger()
+	}
+
+	if config.Use.App.Sentry != "" {
+		w, err := zlogsentry.New(
+			config.Use.App.Sentry,
+			zlogsentry.WithRelease(config.AppVersion),
+			zlogsentry.WithSampleRate(1),
+		)
+		if err != nil {
+			log.Fatal().Err(err).Msg("error initializing Sentry client")
+		}
+
+		writeLog = zerolog.MultiLevelWriter(w, writeLog)
+	}
+
+	log.Logger = zerolog.New(writeLog).With().Timestamp().Logger()
 
 	// Run server
 	server, err := app.RunServer()
