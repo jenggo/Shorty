@@ -13,18 +13,8 @@ const createAuthStore = () => {
 
 	return {
 		subscribe,
-		login: (username: string) => {
-			set({ isAuthenticated: true, username });
-		},
-		logout: () => {
-			set({ isAuthenticated: false, username: null });
-		},
-		initialize: () => {
-			const savedUsername = localStorage.getItem('username');
-			if (savedUsername) {
-				set({ isAuthenticated: true, username: savedUsername });
-			}
-		}
+		login: (username: string) => set({ isAuthenticated: true, username }),
+		logout: () => set({ isAuthenticated: false, username: null })
 	};
 };
 

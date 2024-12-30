@@ -1,6 +1,9 @@
 FROM oven/bun:alpine
 
-ARG API_URL=u.nusatek.dev
+ARG VITE_API_BASE_URL=u.nusatek.dev
+
+RUN addgroup -S groot && adduser -S groot -G groot
+RUN apk add --update ca-certificates
 
 WORKDIR /app
 
@@ -8,9 +11,8 @@ COPY ui/package.json ui/bun.lockb ./
 RUN bun install
 
 COPY ui/ ./
-RUN VITE_API_BASE_URL=$API_URL bun run build
-
-RUN apk add --update ca-certificates && addgroup -S groot && adduser -S groot -G groot
+RUN bun run lint
+RUN bun run build
 
 FROM scratch
 ARG APP_NAME=shorty

@@ -3,18 +3,36 @@
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
+	import { API_BASE_URL } from '$lib/config';
 
 	let { children } = $props();
 
-	onMount(() => {
-		auth.initialize();
-	});
+	async function checkSession() {
+		try {
+			const response = await fetch(`${API_BASE_URL}/auth/check`, {
+				credentials: 'include'
+			});
+			const data = await response.json();
 
-	$effect(() => {
-		// Redirect to login if not authenticated
-		if (!$auth.isAuthenticated && window.location.pathname !== '/login') {
-			goto('/login');
+			if (!data.error && data.data?.username) {
+				auth.login(data.data.username);
+			} else {
+				auth.logout();
+				if (window.location.pathname !== '/login') {
+					goto('/login');
+				}
+			}
+		} catch (err) {
+			console.error('Session check failed:', err);
+			auth.logout();
+			if (window.location.pathname !== '/login') {
+				goto('/login');
+			}
 		}
+	}
+
+	onMount(() => {
+		checkSession();
 	});
 </script>
 

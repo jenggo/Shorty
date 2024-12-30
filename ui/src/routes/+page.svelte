@@ -25,8 +25,6 @@
 	let formLoading = false;
 
 	onMount(() => {
-		auth.initialize();
-
 		const unsubscribe = auth.subscribe(($auth) => {
 			if ($auth.isAuthenticated) {
 				connectWebSocket();

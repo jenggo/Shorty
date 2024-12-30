@@ -12,11 +12,15 @@ func router(app *fiber.App) {
 	app.Get("/ping", func(ctx *fiber.Ctx) error { return ctx.SendString("pong") })
 
 	// UI
+	routes.InitStore()
+	routes.InitOAuth()
 	app.Static("/", "ui", fiber.Static{Compress: true})
+	app.Get("/auth/gitlab", routes.UIOauthLogin)
+	app.Get("/auth/gitlab/callback", routes.UICallback)
+	app.Get("/auth/check", routes.CheckSession)
 	app.Get("/login", func(ctx *fiber.Ctx) error { return ctx.Redirect("/") })
 	app.Get("/logout", routes.UILogout)
 	app.Get("/ws", routes.Upgrade, websocket.New(routes.Websocket))
-	app.Post("/login", routes.UILogin)
 	app.Post("/shorty", routes.UICreate)
 	app.Patch("/:oldName/:newName", routes.UIChange)
 	app.Delete("/:shorty", routes.UIDelete)

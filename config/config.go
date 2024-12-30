@@ -31,4 +31,11 @@ type config struct {
 			Auth int `yaml:"auth" env:"REDIS_DB_AUTH" env-default:"1"`
 		} `yaml:"db"`
 	} `yaml:"redis"`
+
+	Oauth struct {
+		ClientID     string `yaml:"client_id" env:"OAUTH_CLIENT_ID"`
+		ClientSecret string `yaml:"client_secret" env:"OAUTH_CLIENT_SECRET"`
+		RedirectURI  string `yaml:"redirect_uri" env:"OAUTH_REDIRECT_URI"`
+		BaseURL      string `yaml:"base_url" env:"OAUTH_BASE_URL"`
+	} `yaml:"oauth"`
 }
