@@ -18,7 +18,7 @@ func router(app *fiber.App) {
 	app.Get("/auth/gitlab", routes.UIOauthLogin)
 	app.Get("/auth/gitlab/callback", routes.UICallback)
 	app.Get("/auth/check", routes.CheckSession)
-	app.Get("/login", func(ctx *fiber.Ctx) error { return ctx.Redirect("/") })
+	app.Get("/login", func(ctx *fiber.Ctx) error { return ctx.Render("login", nil) })
 	app.Get("/logout", routes.UILogout)
 	app.Get("/ws", routes.Upgrade, websocket.New(routes.Websocket))
 	app.Post("/shorty", routes.UICreate)

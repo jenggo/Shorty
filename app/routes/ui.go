@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"shorty/config"
@@ -29,6 +30,7 @@ type oauthUserResponse struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+	External bool   `json:"external"`
 }
 
 func InitOAuth() {
@@ -76,33 +78,22 @@ func validateSession(ctx *fiber.Ctx) error {
 		return errors.New("unauthorized access")
 	}
 
-	// Add debug logging
-	log.Debug().
-		Str("session_id", sess.ID()).
-		Interface("name", name).
-		Msg("Session validation")
-
 	return nil
 }
 
 func UILogout(ctx *fiber.Ctx) error {
 	sess, err := getSession(ctx)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "session error",
-		})
+		log.Error().Err(err).Msg("failed to get session")
+		return fmt.Errorf("failed to get session")
 	}
 
 	if err := sess.Destroy(); err != nil {
 		log.Error().Err(err).Msg("failed to destroy session")
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "failed to logout",
-		})
+		return fmt.Errorf("failed to logout")
 	}
 
-	return ctx.Redirect("/")
+	return ctx.Render("logout", nil)
 }
 
 func UICreate(ctx *fiber.Ctx) error {
@@ -143,20 +134,16 @@ func UIOauthLogin(ctx *fiber.Ctx) error {
 
 	sess, err := getSession(ctx)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Session error",
-		})
+		log.Error().Err(err).Msg("failed to get session")
+		return fmt.Errorf("failed to get session")
 	}
 
 	_ = sess.Destroy()
 
 	sess.Set("oauth_state", state)
 	if err := sess.Save(); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Failed to save session",
-		})
+		log.Error().Err(err).Msg("failed to save session")
+		return fmt.Errorf("failed to save session")
 	}
 
 	url := oauthConfig.AuthCodeURL(state)
@@ -169,10 +156,8 @@ func UIOauthLogin(ctx *fiber.Ctx) error {
 func UICallback(ctx *fiber.Ctx) error {
 	sess, err := getSession(ctx)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Session error",
-		})
+		log.Error().Err(err).Msg("failed to get session")
+		return fmt.Errorf("failed to get session")
 	}
 
 	code := ctx.Query("code")
@@ -205,10 +190,8 @@ func UICallback(ctx *fiber.Ctx) error {
 
 	req, err := http.NewRequest("POST", oauthConfig.Endpoint.TokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Failed to create token request",
-		})
+		log.Error().Err(err).Msg("failed to create token request")
+		return fmt.Errorf("failed to create token request")
 	}
 
 	req.SetBasicAuth(oauthConfig.ClientID, oauthConfig.ClientSecret)
@@ -217,10 +200,8 @@ func UICallback(ctx *fiber.Ctx) error {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Failed to execute token request",
-		})
+		log.Error().Err(err).Msg("failed to execute token request")
+		return fmt.Errorf("failed to execute token request")
 	}
 	defer resp.Body.Close()
 
@@ -230,46 +211,47 @@ func UICallback(ctx *fiber.Ctx) error {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Failed to parse token response",
-		})
+		log.Error().Err(err).Msg("failed to parse token response")
+		return fmt.Errorf("failed to parse token response")
 	}
 
 	// Get user info
 	userReq, err := http.NewRequest("GET", config.Use.Oauth.BaseURL+"/api/v4/user", nil)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Failed to create user info request",
-		})
+		log.Error().Err(err).Msg("failed to create user info request")
+		return fmt.Errorf("failed to create user info request")
 	}
 
 	userReq.Header.Set("Authorization", "Bearer "+tokenResponse.AccessToken)
 	userResp, err := httpClient.Do(userReq)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Failed to get user info",
-		})
+		log.Error().Err(err).Msg("failed to get user info")
+		return fmt.Errorf("failed to get user info")
 	}
 	defer userResp.Body.Close()
 
 	var user oauthUserResponse
 	if err := json.NewDecoder(userResp.Body).Decode(&user); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
+		log.Error().Err(err).Msg("failed to decode user info")
+		return fmt.Errorf("failed to decode user info")
+	}
+
+	// Check if user is external
+	if user.External {
+		log.Warn().
+			Str("username", user.Username).
+			Msg("external user attempted to login")
+		return ctx.Status(fiber.StatusForbidden).JSON(types.Response{
 			Error:   true,
-			Message: "Failed to decode user info",
+			Message: "external users are not allowed to login",
 		})
 	}
 
 	// Set session
 	sess.Set("name", user.Username)
 	if err := sess.Save(); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
-			Error:   true,
-			Message: "Failed to save session",
-		})
+		log.Error().Err(err).Msg("failed to save session")
+		return fmt.Errorf("failed to save session")
 	}
 
 	return ctx.Redirect("/")

@@ -29,7 +29,7 @@ func RunServer() (app *fiber.App, err error) {
 		ErrorHandler:          errHandler,
 		ReadTimeout:           10 * time.Second,
 		ProxyHeader:           "Cf-Connecting-Ip",
-		Views:                 html.New("ui", ".tpl"),
+		Views:                 html.New("ui", ".html"),
 	}
 
 	if !config.Use.App.Cloudflare {

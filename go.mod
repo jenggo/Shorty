@@ -8,7 +8,7 @@ require (
 	github.com/archdx/zerolog-sentry v1.8.5
 	github.com/goccy/go-json v0.10.4
 	github.com/gofiber/contrib/websocket v1.3.2
-	github.com/gofiber/fiber/v2 v2.52.5
+	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/keyauth/v2 v2.2.1
 	github.com/gofiber/storage/redis/v3 v3.1.2
 	github.com/gofiber/template/html/v2 v2.1.2
@@ -26,13 +26,14 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/fasthttp/websocket v1.5.11 // indirect
-	github.com/getsentry/sentry-go v0.30.0 // indirect
+	github.com/fasthttp/websocket v1.5.12 // indirect
+	github.com/getsentry/sentry-go v0.31.1 // indirect
 	github.com/gofiber/template v1.8.3 // indirect
 	github.com/gofiber/utils v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
