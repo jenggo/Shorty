@@ -1,85 +1,20 @@
 package routes
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"shorty/config"
+	"shorty/pkg"
 	"shorty/types"
-	"strconv"
+	"shorty/utils"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
-	"github.com/gofiber/storage/redis/v3"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/oauth2"
 )
-
-var (
-	store       = session.New()
-	oauthConfig *oauth2.Config
-)
-
-type oauthUserResponse struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	External bool   `json:"external"`
-}
-
-func InitOAuth() {
-	oauthConfig = &oauth2.Config{
-		ClientID:     config.Use.Oauth.ClientID,
-		ClientSecret: config.Use.Oauth.ClientSecret,
-		RedirectURL:  config.Use.Oauth.RedirectURI,
-		Scopes:       []string{"read_user"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:   config.Use.Oauth.BaseURL + "/oauth/authorize",
-			TokenURL:  config.Use.Oauth.BaseURL + "/oauth/token",
-			AuthStyle: oauth2.AuthStyleInHeader,
-		},
-	}
-}
-
-func generateState() string {
-	b := make([]byte, 32)
-	_, err := rand.Read(b)
-	if err != nil {
-		log.Error().Caller().Err(err).Send()
-		return ""
-	}
-	return base64.StdEncoding.EncodeToString(b)
-}
-
-func getSession(ctx *fiber.Ctx) (*session.Session, error) {
-	sess, err := store.Get(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get session")
-		return nil, err
-	}
-
-	return sess, nil
-}
-
-func validateSession(ctx *fiber.Ctx) error {
-	sess, err := getSession(ctx)
-	if err != nil {
-		return err
-	}
-
-	name := sess.Get("name")
-	if name == nil {
-		return errors.New("unauthorized access")
-	}
-
-	return nil
-}
 
 func UILogout(ctx *fiber.Ctx) error {
 	sess, err := getSession(ctx)
@@ -130,7 +65,7 @@ func UIChange(ctx *fiber.Ctx) error {
 }
 
 func UIOauthLogin(ctx *fiber.Ctx) error {
-	state := generateState()
+	state := utils.GenerateState()
 
 	sess, err := getSession(ctx)
 	if err != nil {
@@ -257,6 +192,56 @@ func UICallback(ctx *fiber.Ctx) error {
 	return ctx.Redirect("/")
 }
 
+func UIUpload(ctx *fiber.Ctx) error {
+	if err := validateSession(ctx); err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
+			Error:   true,
+			Message: err.Error(),
+		})
+	}
+
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(types.Response{
+			Error:   true,
+			Message: "Invalid file upload",
+		})
+	}
+
+	mfile, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("Failed to process file %s: %v", file.Filename, err)
+	}
+	defer mfile.Close()
+
+	s3, err := pkg.NewS3(ctx.Context())
+	if err != nil {
+		return err
+	}
+
+	fileName := utils.SlugifyFilename(file.Filename)
+
+	if err := s3.Upload(ctx.Context(), fileName, mfile, file.Size); err != nil {
+		return fmt.Errorf("Failed to upload %s", fileName)
+	}
+
+	url, err := s3.GeneratePresignedURL(ctx.Context(), fileName, config.Use.S3.Expired)
+	if err != nil {
+		return fmt.Errorf("Failed to generate presigned url: %v", err)
+	}
+
+	shorty := pkg.HumanFriendlyEnglishString(8)
+
+	if err := pkg.Redis.Set(ctx.Context(), shorty, url, config.Use.S3.Expired, true); err != nil {
+		return err
+	}
+
+	return ctx.JSON(types.Response{
+		Error:   false,
+		Message: fmt.Sprintf("%s/%s", ctx.BaseURL(), shorty),
+	})
+}
+
 func CheckSession(ctx *fiber.Ctx) error {
 	sess, err := getSession(ctx)
 	if err != nil {
@@ -277,24 +262,8 @@ func CheckSession(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{
 		"error": false,
 		"data": fiber.Map{
-			"username": name,
+			"username":  name,
+			"s3Enabled": config.Use.S3.Enable,
 		},
-	})
-}
-
-func InitStore() {
-	redisPort, _ := strconv.Atoi(config.Use.Redis.Port)
-	redisStore := redis.New(redis.Config{
-		Host:     config.Use.Redis.Host,
-		Port:     redisPort,
-		Password: config.Use.Redis.Password,
-		Database: config.Use.Redis.DB.Auth + 1,
-	})
-
-	store = session.New(session.Config{
-		Storage:        redisStore,
-		Expiration:     24 * time.Hour,
-		CookieSecure:   true,
-		CookieHTTPOnly: true,
 	})
 }

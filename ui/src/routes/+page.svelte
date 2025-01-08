@@ -3,6 +3,7 @@
 	import { WS_BASE_URL, API_BASE_URL } from '$lib/config';
 	import { api } from '$lib/api';
 	import Loading from '$lib/components/Loading.svelte';
+	import FileUpload from '$lib/components/FileUpload.svelte';
 	import { auth } from '$lib/stores/auth';
 	import Swal from 'sweetalert2';
 
@@ -22,6 +23,7 @@
 	let newUrl = '';
 	let customName = '';
 	let showCreateForm = false;
+	let showUploadForm = false;
 	let formLoading = false;
 
 	onMount(() => {
@@ -68,10 +70,10 @@
 				console.log('WebSocket disconnected');
 				Swal.fire({
 					title: 'Connection Lost',
-					text: 'Your session has been disconnected. You will be logged out.',
+					text: 'Your session has been disconnected.',
 					icon: 'warning',
 					showConfirmButton: false,
-					timer: 2000,
+					timer: 5000,
 					timerProgressBar: true
 				}).then(() => {
 					location.assign(`${API_BASE_URL}`);
@@ -91,7 +93,11 @@
 			customName = '';
 			showCreateForm = false;
 		} catch (err) {
-			error = 'Failed to create short URL: ' + err;
+			Swal.fire({
+				icon: 'error',
+				title: 'Error',
+				text: err instanceof Error ? err.message : 'Failed to create short URL'
+			});
 		} finally {
 			formLoading = false;
 		}
@@ -161,14 +167,24 @@
 
 <nav class="bg-gray-800 p-4">
 	<div class="container mx-auto flex items-center justify-between">
-		<h1 class="text-xl font-bold text-white">Shorty</h1>
+		<h1 class="text-xl font-bold text-white">
+			Hello {$auth.isAuthenticated ? $auth.username : 'Guest'}
+		</h1>
 		<div class="flex gap-4">
 			<button
 				class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 				on:click={() => (showCreateForm = !showCreateForm)}
 			>
-				Create New
+				{showCreateForm ? 'Cancel' : 'Create New'}
 			</button>
+			{#if $auth.s3Enabled}
+				<button
+					class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+					on:click={() => (showUploadForm = !showUploadForm)}
+				>
+					{showUploadForm ? 'Cancel' : 'Upload File'}
+				</button>
+			{/if}
 			<button
 				class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
 				on:click={() => (window.location.href = '/logout')}
@@ -243,6 +259,12 @@
 		</div>
 	{/if}
 
+	{#if showUploadForm && $auth.s3Enabled}
+		<div class="mb-6">
+			<FileUpload />
+		</div>
+	{/if}
+
 	{#if loading}
 		<div class="flex justify-center p-8">
 			<Loading size="w-8 h-8" />
@@ -282,7 +304,39 @@
 				<tbody class="divide-y divide-gray-200 bg-white">
 					{#each data as row}
 						<tr>
-							<td class="whitespace-nowrap px-6 py-4">{row.shorty}</td>
+							<td class="whitespace-nowrap px-6 py-4">
+								<button
+									class="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+									on:click={() => {
+										const fullUrl = `${API_BASE_URL}/${row.shorty}`;
+										navigator.clipboard.writeText(fullUrl);
+										Swal.fire({
+											toast: true,
+											position: 'top-end',
+											showConfirmButton: false,
+											timer: 2000,
+											icon: 'success',
+											title: 'Copied to clipboard!'
+										});
+									}}
+								>
+									{row.shorty}
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-4 w-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+										/>
+									</svg>
+								</button>
+							</td>
 							<td class="whitespace-nowrap px-6 py-4">{row.file}</td>
 							<td class="max-w-xs px-6 py-4">
 								<a
@@ -298,13 +352,13 @@
 							<td class="whitespace-nowrap px-6 py-4">
 								<div class="flex gap-2">
 									<button
-										class="text-blue-600 hover:text-blue-800"
+										class="rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
 										on:click={() => handleRename(row.shorty)}
 									>
 										Rename
 									</button>
 									<button
-										class="text-red-600 hover:text-red-800"
+										class="rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700"
 										on:click={() => handleDelete(row.shorty)}
 									>
 										Delete

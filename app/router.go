@@ -2,6 +2,7 @@ package app
 
 import (
 	"shorty/app/routes"
+	"shorty/config"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -24,6 +25,10 @@ func router(app *fiber.App) {
 	app.Post("/shorty", routes.UICreate)
 	app.Patch("/:oldName/:newName", routes.UIChange)
 	app.Delete("/:shorty", routes.UIDelete)
+
+	if config.Use.S3.Enable {
+		app.Post("/upload", routes.UIUpload)
+	}
 
 	// Get real url
 	app.Get("/:shorty", routes.Get)

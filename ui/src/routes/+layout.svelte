@@ -15,7 +15,7 @@
 			const data = await response.json();
 
 			if (!data.error && data.data?.username) {
-				auth.login(data.data.username);
+				auth.login(data.data.username, data.data.s3Enabled);
 			} else {
 				auth.logout();
 				if (window.location.pathname !== '/login') {

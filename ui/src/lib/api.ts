@@ -16,19 +16,20 @@ class ApiClient {
 			}
 		});
 
-		if (!response.ok) {
-			throw new Error('API request failed');
+		const data = await response.json();
+
+		if (!response.ok || data.error) {
+			throw new Error(data.message || 'API request failed');
 		}
 
-		return response;
+		return data;
 	}
 
 	async createShorty(url: string, customName?: string) {
-		const response = await this.fetchWithCredentials(`${API_BASE_URL}/shorty`, {
+		return await this.fetchWithCredentials(`${API_BASE_URL}/shorty`, {
 			method: 'POST',
 			body: JSON.stringify({ url, custom_name: customName })
 		});
-		return response.json();
 	}
 
 	async deleteShorty(shorty: string) {

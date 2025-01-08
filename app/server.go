@@ -32,6 +32,11 @@ func RunServer() (app *fiber.App, err error) {
 		Views:                 html.New("ui", ".html"),
 	}
 
+	if config.Use.S3.Enable {
+		appCfg.StreamRequestBody = true
+		appCfg.BodyLimit = -1
+	}
+
 	if !config.Use.App.Cloudflare {
 		appCfg.ProxyHeader = "X-Real-Ip"
 	}
@@ -79,7 +84,7 @@ func errHandler(c *fiber.Ctx, err error) error {
 	method := c.Method()
 	path := c.Path()
 
-	if ua != "" && ip != "" && code != 404 {
+	if ua != "" && ip != "" && code != fiber.StatusNotFound {
 		log.Error().Str("UserAgent", ua).Str("IP", ip).Str("Method", method).Str("Path", path).Err(err).Send()
 	}
 

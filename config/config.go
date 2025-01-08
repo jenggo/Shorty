@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 const (
 	AppName    string = "Shorty"
 	AppVersion string = "v0.0.4"
@@ -38,4 +40,16 @@ type config struct {
 		RedirectURI  string `yaml:"redirect_uri" env:"OAUTH_REDIRECT_URI"`
 		BaseURL      string `yaml:"base_url" env:"OAUTH_BASE_URL"`
 	} `yaml:"oauth"`
+
+	S3 struct {
+		Enable   bool   `yaml:"enable" env:"S3_ENABLE" env-default:"false"`
+		Endpoint string `yaml:"endpoint" env:"S3_ENDPOINT"`
+		Bucket   string `yaml:"bucket" env:"S3_BUCKET"`
+		Key      struct {
+			Access string `yaml:"access" env:"S3_ACCESS"`
+			Secret string `yaml:"secret" env:"S3_SECRET"`
+		} `yaml:"key"`
+		Tracing bool          `yaml:"tracing" env:"tracing" env-default:"false"`
+		Expired time.Duration `yaml:"expired" env:"S3_EXPIRED" env-default:"24h"`
+	} `yaml:"s3"`
 }
