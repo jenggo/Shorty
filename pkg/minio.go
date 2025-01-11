@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/rs/zerolog/log"
 )
 
 type s3 struct {
@@ -22,6 +25,16 @@ func NewS3(ctx context.Context) (*s3, error) {
 	c, err := minio.New(config.Use.S3.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.Use.S3.Key.Access, config.Use.S3.Key.Secret, ""),
 		Secure: true,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+			TLSHandshakeTimeout: 10 * time.Second,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+		},
 	})
 	c.SetAppInfo(config.AppName, config.AppVersion)
 	if config.Use.S3.Tracing {
@@ -47,59 +60,44 @@ func NewS3(ctx context.Context) (*s3, error) {
 	return &s3{m: c}, nil
 }
 
-func (s3 *s3) Download(ctx context.Context, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
-	object, err := s3.m.GetObject(ctx, config.Use.S3.Bucket, objectName, opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download object %s: %v", objectName, err)
-	}
-
-	return object, nil
-}
-
-func (s3 *s3) CheckObject(ctx context.Context, objectName, md5Hash string) (bool, error) {
-	objectStat, err := s3.m.StatObject(ctx, config.Use.S3.Bucket, objectName, minio.GetObjectOptions{})
-	if err != nil {
+func (s3 *s3) Upload(ctx context.Context, objectName string, file io.Reader, size int64, expired time.Duration) error {
+	if _, err := s3.m.StatObject(ctx, config.Use.S3.Bucket, objectName, minio.GetObjectOptions{}); err != nil {
 		errResponse := minio.ToErrorResponse(err)
 		if errResponse.Code == "AccessDenied" {
-			return false, fmt.Errorf("access denied with endpoint %s", config.Use.S3.Endpoint)
+			return fmt.Errorf("access denied with endpoint %s", config.Use.S3.Endpoint)
 		}
-		if errResponse.Code == "NoSuchBucket" {
-			return false, fmt.Errorf("bucket %s not found", config.Use.S3.Bucket)
+
+		if errResponse.Code == "NoSuchBucket" || errResponse.Code == "InvalidBucketName" {
+			return fmt.Errorf("bucket %s not found", config.Use.S3.Bucket)
 		}
-		if errResponse.Code == "InvalidBucketName" {
-			return false, fmt.Errorf("invalid bucket name %s", config.Use.S3.Bucket)
-		}
+
 		if errResponse.Code == "NoSuchKey" {
-			return false, fmt.Errorf("not found %s", objectName)
+			expires := time.Now().Local().Add(expired)
+			if _, err := s3.m.PutObject(ctx, config.Use.S3.Bucket, objectName, file, size, minio.PutObjectOptions{
+				Expires:               expires,
+				ConcurrentStreamParts: true,
+			}); err != nil {
+				if err := s3.m.RemoveIncompleteUpload(ctx, config.Use.S3.Bucket, objectName); err != nil {
+					log.Error().Caller().Err(err).Msgf("failed to remove incomplete upload %s", objectName)
+				}
+
+				return fmt.Errorf("failed to upload object %s: %v", objectName, err)
+			}
+
+			return nil
 		}
-		return false, err
+
+		return err
 	}
 
-	if md5Hash != "" {
-		if objectStat.ETag != md5Hash {
-			return false, nil
-		}
-	}
-
-	return true, nil
-}
-
-func (s3 *s3) Upload(ctx context.Context, objectName string, file io.Reader, size int64) error {
-	expires := time.Now().UTC().Add(config.Use.S3.Expired)
-	if _, err := s3.m.PutObject(ctx, config.Use.S3.Bucket, objectName, file, size, minio.PutObjectOptions{Expires: expires}); err != nil {
-		return fmt.Errorf("failed to upload object %s: %v", objectName, err)
-	}
-
-	return nil
+	return fmt.Errorf("%s already exists", objectName)
 }
 
 func (s3 *s3) GeneratePresignedURL(ctx context.Context, objectName string, expired time.Duration) (string, error) {
 	reqParams := make(url.Values)
 	reqParams.Set("response-content-disposition", "inline")
 
-	objectExpired := time.Duration(expired.Seconds()) * time.Second
-
-	url, err := s3.m.PresignedGetObject(ctx, config.Use.S3.Bucket, objectName, objectExpired, reqParams)
+	url, err := s3.m.PresignedGetObject(ctx, config.Use.S3.Bucket, objectName, expired, reqParams)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned url: %v", err)
 	}

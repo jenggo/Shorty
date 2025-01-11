@@ -103,15 +103,26 @@ func (r *redis) GetAll(ctx context.Context) (datas []types.Shorten, err error) {
 }
 
 func getFile(input string) string {
-	u, _ := url.Parse(input)
-	transform := filepath.Base(u.Path)
-	ext := filepath.Ext(transform)
-	test := mime.TypeByExtension(ext)
-	if test != "" {
-		return transform
+	u, err := url.Parse(input)
+	if err != nil {
+		log.Error().Caller().Err(err).Send()
+		return ""
 	}
 
-	return test
+	transform := filepath.Base(u.Path)
+	if transform == "" || transform == "." {
+		return ""
+	}
+
+	ext := filepath.Ext(transform)
+	if ext != "" {
+		mimeType := mime.TypeByExtension(ext)
+		if mimeType != "" {
+			return transform
+		}
+	}
+
+	return transform
 }
 
 func (r *redis) Del(ctx context.Context, key string) error {

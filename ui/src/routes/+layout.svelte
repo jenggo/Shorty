@@ -4,8 +4,9 @@
 	import { auth } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { API_BASE_URL } from '$lib/config';
+	import { Toaster } from 'svelte-sonner';
 
-	let { children } = $props();
+	const { children } = $props();
 
 	async function checkSession() {
 		try {
@@ -36,4 +37,5 @@
 	});
 </script>
 
+<Toaster position="bottom-right" expand={true} richColors duration={7000} />
 {@render children()}

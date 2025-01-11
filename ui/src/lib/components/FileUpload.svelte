@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { API_BASE_URL } from '$lib/config';
-	import { onDestroy } from 'svelte';
+	import { toast } from 'svelte-sonner';
 
 	interface UploadResponse {
 		error: boolean;
@@ -10,60 +10,39 @@
 	let files: FileList | null = null;
 	let uploading = false;
 	let progress = 0;
-	let error = '';
-	let success = '';
+	let fileInput: HTMLInputElement;
 
 	// Define max file size (100MB in bytes)
 	const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
-	// Notification timeout (in milliseconds)
-	const NOTIFICATION_TIMEOUT = 5000; // 5 seconds
-
-	let notificationTimer: number;
-
-	// Clear notifications after timeout
-	function clearNotificationsAfterDelay() {
-		clearTimeout(notificationTimer);
-		notificationTimer = setTimeout(() => {
-			error = '';
-			success = '';
-		}, NOTIFICATION_TIMEOUT);
-	}
-
-	// Cleanup on component destroy
-	onDestroy(() => {
-		clearTimeout(notificationTimer);
-	});
-
-	// Reset form
-	function resetForm() {
-		files = null;
-		progress = 0;
-		error = '';
-		success = '';
+	// Helper function to format file size
+	function formatFileSize(bytes: number): string {
+		if (bytes === 0) return '0 Bytes';
+		const k = 1024;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 	}
 
 	async function handleUpload() {
-		if (!files?.[0]) return;
+		if (!files?.[0] || uploading) return;
 
 		// Check file size before uploading
 		if (files[0].size > MAX_FILE_SIZE) {
-			error = 'File size exceeds 100MB limit';
-			files = null;
-			clearNotificationsAfterDelay();
+			toast.error('File size exceeds limit');
+			resetUpload();
 			return;
 		}
 
 		uploading = true;
 		progress = 0;
-		error = '';
-		success = '';
 
 		const formData = new FormData();
 		formData.append('file', files[0]);
 
 		try {
 			const xhr = new XMLHttpRequest();
+			xhr.timeout = 30 * 60 * 1000; // 30 minutes timeout
 
 			xhr.upload.onprogress = (event) => {
 				if (event.lengthComputable) {
@@ -74,12 +53,19 @@
 			const uploadPromise = new Promise<UploadResponse>((resolve, reject) => {
 				xhr.onload = () => {
 					if (xhr.status === 200) {
-						resolve(JSON.parse(xhr.response) as UploadResponse);
+						resolve(JSON.parse(xhr.response));
 					} else {
-						reject(new Error('Upload failed'));
+						try {
+							const errorResponse = JSON.parse(xhr.response);
+							reject(new Error(errorResponse.message || `Upload failed with status ${xhr.status}`));
+						} catch {
+							reject(new Error(`Upload failed with status ${xhr.status}`));
+						}
 					}
 				};
-				xhr.onerror = () => reject(new Error('Upload failed'));
+				xhr.onerror = () => reject(new Error('Network error occurred'));
+				xhr.ontimeout = () => reject(new Error('Upload timed out'));
+				xhr.onabort = () => reject(new Error('Upload was aborted'));
 			});
 
 			xhr.open('POST', `${API_BASE_URL}/upload`);
@@ -87,33 +73,32 @@
 			xhr.send(formData);
 
 			const response = await uploadPromise;
-			success = response.message;
-			resetForm();
-			clearNotificationsAfterDelay();
-		} catch (err) {
-			if (err instanceof Error) {
-				error = err.message;
-			} else {
-				error = 'An unknown error occurred';
-			}
-			clearNotificationsAfterDelay();
+			toast.success('Upload successful', {
+				description: response.message
+			});
+		} catch (error) {
+			console.error('Upload error:', error);
+			toast.error('Upload failed', {
+				description: error instanceof Error ? error.message : 'Unknown error occurred'
+			});
 		} finally {
-			uploading = false;
+			resetUpload();
 		}
 	}
 
-	// Watch for file changes and trigger upload automatically
-	$: if (files?.[0] && !uploading) {
-		handleUpload();
+	function resetUpload() {
+		uploading = false;
+		progress = 0;
+		files = null;
+		if (fileInput) {
+			fileInput.value = ''; // Clear the input
+		}
 	}
 
-	// Helper function to format file size
-	function formatFileSize(bytes: number): string {
-		if (bytes === 0) return '0 Bytes';
-		const k = 1024;
-		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+	function handleFileSelect() {
+		if (files?.[0] && !uploading) {
+			handleUpload();
+		}
 	}
 </script>
 
@@ -122,24 +107,12 @@
 
 	<p class="mb-4 text-sm text-gray-600">Maximum file size: {formatFileSize(MAX_FILE_SIZE)}</p>
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-3 text-red-700">
-			{error}
-			<button class="ml-2 text-red-500" on:click={() => (error = '')}>✕</button>
-		</div>
-	{/if}
-
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-3 text-green-700">
-			{success}
-			<button class="ml-2 text-green-500" on:click={() => (success = '')}>✕</button>
-		</div>
-	{/if}
-
 	<div class="mb-4">
 		<input
 			type="file"
 			bind:files
+			bind:this={fileInput}
+			on:change={handleFileSelect}
 			disabled={uploading}
 			class="block w-full text-sm text-gray-500
             file:mr-4 file:cursor-pointer file:rounded-full

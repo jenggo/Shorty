@@ -14,12 +14,12 @@ COPY ui/ ./
 RUN bun run lint
 RUN bun run build
 
-FROM scratch
-ARG APP_NAME=shorty
+# do not use scratch, uploading will failed if file >= 20MB
+FROM busybox:musl
 
 WORKDIR /app
 
-COPY ${APP_NAME} config.yaml ./
+COPY shorty config.yaml ./
 COPY --from=0 /etc/passwd /etc/passwd
 COPY --from=0 /app/build ui/
 

@@ -13,7 +13,7 @@ import (
 )
 
 func Upgrade(ctx *fiber.Ctx) error {
-	sess, err := store.Get(ctx)
+	sess, err := sessionStore.Get(ctx)
 	if err != nil {
 		return err
 	}

@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	store       = session.New()
-	oauthConfig *oauth2.Config
+	sessionStore = session.New()
+	oauthConfig  *oauth2.Config
 )
 
 type oauthUserResponse struct {
@@ -45,7 +45,7 @@ func InitStore() {
 		Database: config.Use.Redis.DB.Auth + 1,
 	})
 
-	store = session.New(session.Config{
+	sessionStore = session.New(session.Config{
 		Storage:        redisStore,
 		Expiration:     168 * time.Hour,
 		CookieSecure:   true,

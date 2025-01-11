@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"runtime"
 	"shorty/config"
 	"shorty/pkg"
 	"shorty/types"
@@ -194,6 +195,7 @@ func UICallback(ctx *fiber.Ctx) error {
 
 func UIUpload(ctx *fiber.Ctx) error {
 	if err := validateSession(ctx); err != nil {
+		log.Error().Caller().Err(err).Send()
 		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
 			Error:   true,
 			Message: err.Error(),
@@ -202,39 +204,46 @@ func UIUpload(ctx *fiber.Ctx) error {
 
 	file, err := ctx.FormFile("file")
 	if err != nil {
+		log.Error().Caller().Err(err).Send()
 		return ctx.Status(fiber.StatusBadRequest).JSON(types.Response{
 			Error:   true,
-			Message: "Invalid file upload",
+			Message: "Invalid file upload: " + err.Error(),
 		})
 	}
 
 	mfile, err := file.Open()
 	if err != nil {
+		log.Error().Caller().Err(err).Send()
 		return fmt.Errorf("Failed to process file %s: %v", file.Filename, err)
 	}
 	defer mfile.Close()
 
 	s3, err := pkg.NewS3(ctx.Context())
 	if err != nil {
-		return err
+		log.Error().Caller().Err(err).Send()
+		return fmt.Errorf("Failed to create S3 client: %v", err)
 	}
 
 	fileName := utils.SlugifyFilename(file.Filename)
-
-	if err := s3.Upload(ctx.Context(), fileName, mfile, file.Size); err != nil {
-		return fmt.Errorf("Failed to upload %s", fileName)
+	if err := s3.Upload(ctx.Context(), fileName, mfile, file.Size, config.Use.S3.Expired); err != nil {
+		log.Error().Caller().Err(err).Send()
+		return fmt.Errorf("Failed to upload file: %v", err)
 	}
 
 	url, err := s3.GeneratePresignedURL(ctx.Context(), fileName, config.Use.S3.Expired)
 	if err != nil {
+		log.Error().Caller().Err(err).Send()
 		return fmt.Errorf("Failed to generate presigned url: %v", err)
 	}
 
 	shorty := pkg.HumanFriendlyEnglishString(8)
-
 	if err := pkg.Redis.Set(ctx.Context(), shorty, url, config.Use.S3.Expired, true); err != nil {
-		return err
+		log.Error().Caller().Err(err).Send()
+		return fmt.Errorf("Failed to set redis key: %v", err)
 	}
+
+	// Aggresively freeing memory
+	runtime.GC()
 
 	return ctx.JSON(types.Response{
 		Error:   false,

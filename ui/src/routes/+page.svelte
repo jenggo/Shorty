@@ -5,7 +5,7 @@
 	import Loading from '$lib/components/Loading.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import { auth } from '$lib/stores/auth';
-	import Swal from 'sweetalert2';
+	import { toast } from 'svelte-sonner';
 
 	interface ShortyData {
 		shorty: string;
@@ -21,10 +21,13 @@
 
 	// Form states
 	let newUrl = '';
+	// biome-ignore lint: false positive
 	let customName = '';
-	let showCreateForm = false;
-	let showUploadForm = false;
 	let formLoading = false;
+	// biome-ignore lint: false positive
+	let showCreateForm = false;
+	// biome-ignore lint: false positive
+	let showUploadForm = false;
 
 	onMount(() => {
 		const unsubscribe = auth.subscribe(($auth) => {
@@ -68,19 +71,16 @@
 
 			ws.onclose = () => {
 				console.log('WebSocket disconnected');
-				Swal.fire({
-					title: 'Connection Lost',
-					text: 'Your session has been disconnected.',
-					icon: 'warning',
-					showConfirmButton: false,
-					timer: 5000,
-					timerProgressBar: true
-				}).then(() => {
-					location.assign(`${API_BASE_URL}`);
+				toast.error('Connection Lost', {
+					description: 'Your session has been disconnected.',
+					duration: 5000
 				});
+				setTimeout(() => {
+					location.assign(`${API_BASE_URL}`);
+				}, 5000);
 			};
 		} catch (err) {
-			error = 'Failed to connect to WebSocket: ' + err;
+			error = `Failed to connect to WebSocket: ${err}`;
 			loading = false;
 		}
 	}
@@ -90,13 +90,10 @@
 			formLoading = true;
 			await api.createShorty(newUrl, customName || undefined);
 			newUrl = '';
-			customName = '';
-			showCreateForm = false;
+			toast.success('Shorty created successfully');
 		} catch (err) {
-			Swal.fire({
-				icon: 'error',
-				title: 'Error',
-				text: err instanceof Error ? err.message : 'Failed to create short URL'
+			toast.error('Error', {
+				description: err instanceof Error ? err.message : 'Failed to create short URL'
 			});
 		} finally {
 			formLoading = false;
@@ -104,64 +101,57 @@
 	}
 
 	async function handleDelete(shorty: string) {
-		const result = await Swal.fire({
-			title: 'Are you sure?',
-			text: "You won't be able to revert this!",
-			icon: 'warning',
-			showCancelButton: true,
-			confirmButtonColor: '#3085d6',
-			cancelButtonColor: '#d33',
-			confirmButtonText: 'Yes, delete it!'
+		const promise = new Promise<boolean>((resolve, reject) => {
+			if (confirm('Are you sure you want to delete this shorty?')) {
+				api
+					.deleteShorty(shorty)
+					.then(() => resolve(true))
+					.catch(reject);
+			} else {
+				reject(new Error('Cancelled'));
+			}
 		});
 
-		if (result.isConfirmed) {
-			try {
-				await api.deleteShorty(shorty);
-				Swal.fire('Deleted!', 'Your shorty has been deleted.', 'success');
-			} catch (err) {
-				error = 'Failed to delete short URL: ' + err;
-				Swal.fire('Error!', 'Failed to delete short URL.', 'error');
-			}
-		}
+		toast.promise(promise, {
+			loading: 'Deleting shorty...',
+			success: 'Shorty deleted successfully',
+			error: (error: unknown) =>
+				`Failed to delete: ${error instanceof Error ? error.message : 'Unknown error'}`
+		});
 	}
 
 	async function handleRename(oldName: string) {
-		const result = await Swal.fire({
-			title: 'Rename Shorty',
-			input: 'text',
-			inputLabel: 'New name',
-			inputValue: oldName,
-			showCancelButton: true,
-			inputValidator: (value) => {
-				if (!value) {
-					return 'You need to provide a name!';
-				}
-			}
-		});
+		const newName = prompt('Enter new name:', oldName);
+		if (!newName) return;
 
-		if (result.isConfirmed) {
-			try {
-				await api.renameShorty(oldName, result.value);
-				Swal.fire('Renamed!', 'Your shorty has been renamed.', 'success');
-			} catch (err) {
-				error = 'Failed to rename short URL: ' + err;
-				Swal.fire('Error!', 'Failed to rename short URL.', 'error');
-			}
-		}
+		const promise = api.renameShorty(oldName, newName);
+
+		toast.promise(promise, {
+			loading: 'Renaming shorty...',
+			success: 'Shorty renamed successfully',
+			error: (error: unknown) =>
+				`Failed to rename: ${error instanceof Error ? error.message : 'Unknown error'}`
+		});
+	}
+
+	function copyToClipboard(fullUrl: string) {
+		navigator.clipboard.writeText(fullUrl);
+		toast.success('Copied to clipboard!');
 	}
 
 	function formatExpiry(nanoseconds: string): string {
-		const secs = parseInt(nanoseconds) / 1e9;
+		const secs = Number.parseInt(nanoseconds) / 1e9;
 
 		if (secs < 60) {
 			return `${Math.round(secs)}s`;
-		} else if (secs < 3600) {
-			return `${Math.floor(secs / 60)}m`;
-		} else if (secs < 86400) {
-			return `${Math.floor(secs / 3600)}h`;
-		} else {
-			return `${Math.floor(secs / 86400)}d`;
 		}
+		if (secs < 3600) {
+			return `${Math.floor(secs / 60)}m`;
+		}
+		if (secs < 86400) {
+			return `${Math.floor(secs / 3600)}h`;
+		}
+		return `${Math.floor(secs / 86400)}d`;
 	}
 </script>
 
@@ -309,15 +299,7 @@
 									class="flex items-center gap-2 text-blue-600 hover:text-blue-800"
 									on:click={() => {
 										const fullUrl = `${API_BASE_URL}/${row.shorty}`;
-										navigator.clipboard.writeText(fullUrl);
-										Swal.fire({
-											toast: true,
-											position: 'top-end',
-											showConfirmButton: false,
-											timer: 2000,
-											icon: 'success',
-											title: 'Copied to clipboard!'
-										});
+										copyToClipboard(fullUrl);
 									}}
 								>
 									{row.shorty}

@@ -9,7 +9,7 @@ import (
 	"shorty/pkg"
 	"syscall"
 
-	"github.com/archdx/zerolog-sentry"
+	zlogsentry "github.com/archdx/zerolog-sentry"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -29,10 +29,12 @@ func main() {
 	}
 
 	if config.Use.App.Sentry != "" {
+		host, _ := os.Hostname()
 		w, err := zlogsentry.New(
 			config.Use.App.Sentry,
 			zlogsentry.WithRelease(config.AppVersion),
-			zlogsentry.WithSampleRate(1),
+			zlogsentry.WithServerName(host),
+			zlogsentry.WithSampleRate(1.0),
 		)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error initializing Sentry client")

@@ -11,7 +11,7 @@ func Get(ctx *fiber.Ctx) error {
 
 	realurl, err := pkg.Redis.Get(ctx.Context(), shorturl)
 	if err != nil {
-		return err
+		return ctx.SendStatus(fiber.StatusNotFound)
 	}
 
 	return ctx.Redirect(realurl, fiber.StatusPermanentRedirect)

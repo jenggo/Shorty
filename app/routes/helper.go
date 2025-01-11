@@ -9,7 +9,7 @@ import (
 )
 
 func getSession(ctx *fiber.Ctx) (*session.Session, error) {
-	sess, err := store.Get(ctx)
+	sess, err := sessionStore.Get(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get session")
 		return nil, err
