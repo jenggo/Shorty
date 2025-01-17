@@ -1,10 +1,12 @@
 package config
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	AppName    string = "Shorty"
-	AppVersion string = "v0.0.4"
+	AppVersion string = "v0.0.5"
 )
 
 var Use config
@@ -49,7 +51,8 @@ type config struct {
 			Access string `yaml:"access" env:"S3_ACCESS"`
 			Secret string `yaml:"secret" env:"S3_SECRET"`
 		} `yaml:"key"`
-		Tracing bool          `yaml:"tracing" env:"tracing" env-default:"false"`
-		Expired time.Duration `yaml:"expired" env:"S3_EXPIRED" env-default:"24h"`
+		Tracing         bool          `yaml:"tracing" env:"tracing" env-default:"false"`
+		Expired         time.Duration `yaml:"expired" env:"S3_EXPIRED" env-default:"24h"`
+		CleanupInterval time.Duration `yaml:"cleanup_interval" env:"S3_CLEANUP_INTERVAL" env-default:"1h"`
 	} `yaml:"s3"`
 }

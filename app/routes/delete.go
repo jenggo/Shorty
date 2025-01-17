@@ -7,6 +7,7 @@ import (
 	"shorty/config"
 	"shorty/pkg"
 	"shorty/types"
+	"shorty/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -29,12 +30,7 @@ func Delete(ctx *fiber.Ctx) error {
 			getObjectName := strings.TrimPrefix(key, prefix)
 			objectName := strings.SplitN(getObjectName, "?", 2)[0]
 
-			s3, err := pkg.NewS3(ctx.Context())
-			if err != nil {
-				return err
-			}
-
-			if err := s3.Delete(ctx.Context(), objectName); err != nil {
+			if err := utils.Storage.Delete(objectName); err != nil {
 				return err
 			}
 		}

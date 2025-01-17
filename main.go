@@ -57,20 +57,26 @@ func main() {
 		log.Error().Err(err).Send()
 	}
 
+	// Run cleanup objects for expired shorty
+	if config.Use.S3.Enable && config.Use.S3.CleanupInterval > 0 {
+		pkg.Redis.StartCleanupScheduler()
+	}
+
 	pkg.RedisAuth, err = pkg.NewRedis(config.Use.Redis.DB.Auth)
 	if err != nil {
 		log.Error().Err(err).Send()
 	}
 
 	defer func() {
-		// Close redis connection
-		pkg.Redis.Close()
-		pkg.RedisAuth.Close()
 
 		// Shutdown server
 		if err := server.Shutdown(); err != nil {
 			log.Error().Err(err).Send()
 		}
+
+		// Close redis connection
+		pkg.Redis.Close()
+		pkg.RedisAuth.Close()
 	}()
 
 	// Handle graceful shutdown

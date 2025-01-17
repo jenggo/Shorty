@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/keyauth/v2"
 	"github.com/gofiber/template/html/v2"
 	"github.com/rs/zerolog/log"
@@ -50,13 +51,15 @@ func RunServer() (app *fiber.App, err error) {
 	app.Use(cors.New(cors.Config{
 		// AllowOriginsFunc: func(origin string) bool { return true }, // debugging only
 		AllowOrigins:     "https://u.nusatek.dev",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Cache-Control",
 		AllowCredentials: true,
+		MaxAge:           300,
 	}))
 	app.Use(favicon.New())
 	app.Use(helmet.New())
 	app.Use(earlydata.New())
 	app.Use(etag.New())
+	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	router(app)
 
 	go func() {
@@ -85,7 +88,6 @@ func errHandler(c *fiber.Ctx, err error) error {
 	if ua != "" && ip != "" && code != fiber.StatusNotFound && code != fiber.StatusMethodNotAllowed && err != keyauth.ErrMissingOrMalformedAPIKey {
 		log.Error().Str("UserAgent", ua).Str("IP", ip).Str("Method", method).Str("Path", path).Err(err).Send()
 	}
-	// log.Error().Str("UserAgent", ua).Str("IP", ip).Str("Method", method).Str("Path", path).Err(err).Send()
 
 	return c.Status(code).JSON(types.Response{
 		Error:   true,

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { API_BASE_URL } from '$lib/config';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '$lib/components/swal';
 
 	interface UploadResponse {
 		error: boolean;
@@ -29,7 +29,7 @@
 
 		// Check file size before uploading
 		if (files[0].size > MAX_FILE_SIZE) {
-			toast.error('File size exceeds limit');
+			toast.error('File size error', 'File size exceeds limit');
 			resetUpload();
 			return;
 		}
@@ -73,14 +73,13 @@
 			xhr.send(formData);
 
 			const response = await uploadPromise;
-			toast.success('Upload successful', {
-				description: response.message
-			});
+			toast.success('Upload successful', response.message);
 		} catch (error) {
 			console.error('Upload error:', error);
-			toast.error('Upload failed', {
-				description: error instanceof Error ? error.message : 'Unknown error occurred'
-			});
+			toast.error(
+				'Upload failed',
+				error instanceof Error ? error.message : 'Unknown error occurred'
+			);
 		} finally {
 			resetUpload();
 		}

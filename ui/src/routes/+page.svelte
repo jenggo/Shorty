@@ -1,23 +1,19 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { WS_BASE_URL, API_BASE_URL } from '$lib/config';
+	import { onMount, onDestroy } from 'svelte';
+	import { SSEHandler } from '$lib/sse';
+	import type { ShortyData } from '$lib/types';
+	import { API_BASE_URL } from '$lib/config';
 	import { api } from '$lib/api';
 	import Loading from '$lib/components/Loading.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import { auth } from '$lib/stores/auth';
-	import { toast } from 'svelte-sonner';
-
-	interface ShortyData {
-		shorty: string;
-		file: string;
-		url: string;
-		expired: string;
-	}
+	import { toast, confirm, prompt } from '$lib/components/swal';
 
 	let data: ShortyData[] = [];
-	let ws: WebSocket;
+	let sseHandler: SSEHandler | null = null;
 	let loading = true;
 	let error = '';
+	let connected = false;
 
 	// Form states
 	let newUrl = '';
@@ -30,59 +26,43 @@
 	let showUploadForm = false;
 
 	onMount(() => {
-		const unsubscribe = auth.subscribe(($auth) => {
-			if ($auth.isAuthenticated) {
-				connectWebSocket();
-			} else {
-				loading = false;
-				ws?.close();
-			}
+		sseHandler = SSEHandler.getInstance(`${API_BASE_URL}/events`);
+
+		sseHandler.addEventListener('connected', () => {
+			connected = true;
+			error = '';
 		});
 
-		// Return cleanup function
+		sseHandler.addEventListener('message', (rawData: string) => {
+			try {
+				const parsed = JSON.parse(rawData) as ShortyData[];
+				if (Array.isArray(parsed)) {
+					data = parsed;
+					console.log('Data updated:', data.length, 'items');
+				}
+			} catch (err) {
+				console.error('Failed to parse SSE data:', err);
+				error = err instanceof Error ? err.message : 'Failed to parse data';
+			}
+			loading = false;
+		});
+
 		return () => {
-			unsubscribe();
-			ws?.close();
+			sseHandler?.close();
+			sseHandler = null;
 		};
 	});
 
-	function connectWebSocket() {
-		try {
-			ws = new WebSocket(`${WS_BASE_URL}/ws`);
+	onDestroy(() => {
+		sseHandler?.close();
+		sseHandler = null;
+	});
 
-			ws.onopen = () => {
-				console.log('WebSocket connected');
-				loading = false;
-			};
-
-			ws.onmessage = (event) => {
-				try {
-					data = JSON.parse(event.data);
-				} catch (err) {
-					console.error('Failed to parse WebSocket data:', err);
-				}
-			};
-
-			ws.onerror = (event) => {
-				console.error('WebSocket error:', event);
-				error = 'WebSocket connection error';
-				loading = false;
-			};
-
-			ws.onclose = () => {
-				console.log('WebSocket disconnected');
-				toast.error('Connection Lost', {
-					description: 'Your session has been disconnected.',
-					duration: 5000
-				});
-				setTimeout(() => {
-					location.assign(`${API_BASE_URL}`);
-				}, 5000);
-			};
-		} catch (err) {
-			error = `Failed to connect to WebSocket: ${err}`;
-			loading = false;
-		}
+	function handleReconnect() {
+		error = '';
+		loading = true;
+		sseHandler?.close();
+		sseHandler = SSEHandler.getInstance(`${API_BASE_URL}/events`);
 	}
 
 	async function handleCreate() {
@@ -90,48 +70,54 @@
 			formLoading = true;
 			await api.createShorty(newUrl, customName || undefined);
 			newUrl = '';
-			toast.success('Shorty created successfully');
+			toast.success('Success', 'Shorty created successfully');
 		} catch (err) {
-			toast.error('Error', {
-				description: err instanceof Error ? err.message : 'Failed to create short URL'
-			});
+			toast.error('Error', err instanceof Error ? err.message : 'Failed to create short URL');
 		} finally {
 			formLoading = false;
 		}
 	}
 
 	async function handleDelete(shorty: string) {
-		const promise = new Promise<boolean>((resolve, reject) => {
-			if (confirm('Are you sure you want to delete this shorty?')) {
-				api
-					.deleteShorty(shorty)
-					.then(() => resolve(true))
-					.catch(reject);
-			} else {
-				reject(new Error('Cancelled'));
-			}
+		const confirmed = await confirm({
+			title: 'Are you sure?',
+			text: 'You want to delete this shorty?',
+			icon: 'warning'
 		});
 
-		toast.promise(promise, {
-			loading: 'Deleting shorty...',
-			success: 'Shorty deleted successfully',
-			error: (error: unknown) =>
-				`Failed to delete: ${error instanceof Error ? error.message : 'Unknown error'}`
-		});
+		if (confirmed) {
+			const promise = api.deleteShorty(shorty);
+			await toast.promise(promise, {
+				loading: 'Deleting shorty...',
+				success: 'Shorty deleted successfully',
+				error: (error: unknown) =>
+					`Failed to delete: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+		}
 	}
 
 	async function handleRename(oldName: string) {
-		const newName = prompt('Enter new name:', oldName);
-		if (!newName) return;
-
-		const promise = api.renameShorty(oldName, newName);
-
-		toast.promise(promise, {
-			loading: 'Renaming shorty...',
-			success: 'Shorty renamed successfully',
-			error: (error: unknown) =>
-				`Failed to rename: ${error instanceof Error ? error.message : 'Unknown error'}`
+		const result = await prompt({
+			title: 'Enter new name',
+			input: 'text',
+			inputValue: oldName,
+			inputValidator: (value: string) => {
+				if (!value) {
+					return 'You need to write something!';
+				}
+				return null;
+			}
 		});
+
+		if (result.value) {
+			const promise = api.renameShorty(oldName, result.value);
+			await toast.promise(promise, {
+				loading: 'Renaming shorty...',
+				success: 'Shorty renamed successfully',
+				error: (error: unknown) =>
+					`Failed to rename: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+		}
 	}
 
 	function copyToClipboard(fullUrl: string) {
@@ -192,10 +178,16 @@
 			<a href="/login" class="text-blue-600 hover:text-blue-800">Login</a>
 		</div>
 	{/if}
-	{#if error}
+	{#if error || !connected}
 		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">
-			{error}
-			<button class="ml-2 text-red-500" on:click={() => (error = '')}>✕</button>
+			{#if !connected}
+				<span>Connection lost - attempting to reconnect...</span>
+			{:else}
+				{error}
+			{/if}
+			<button class="ml-2 text-red-500 hover:text-red-700" on:click={handleReconnect}>
+				Retry
+			</button>
 		</div>
 	{/if}
 

@@ -2,11 +2,14 @@ package routes
 
 import (
 	"shorty/config"
+	"shorty/utils"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/storage/minio"
 	"github.com/gofiber/storage/redis/v3"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 )
 
@@ -51,4 +54,18 @@ func InitStore() {
 		CookieSecure:   true,
 		CookieHTTPOnly: true,
 	})
+
+	utils.Storage = minio.New(minio.Config{
+		Endpoint: config.Use.S3.Endpoint,
+		Bucket:   config.Use.S3.Bucket,
+		Secure:   true,
+		Credentials: minio.Credentials{
+			AccessKeyID:     config.Use.S3.Key.Access,
+			SecretAccessKey: config.Use.S3.Key.Secret,
+		},
+	})
+
+	if err := utils.Storage.CheckBucket(); err != nil {
+		log.Fatal().Err(err).Send()
+	}
 }

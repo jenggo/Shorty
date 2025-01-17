@@ -4,7 +4,6 @@ import (
 	"shorty/app/routes"
 	"shorty/config"
 
-	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -21,8 +20,8 @@ func router(app *fiber.App) {
 	app.Get("/auth/check", routes.CheckSession)
 	app.Get("/login", func(ctx *fiber.Ctx) error { return ctx.Render("login", nil) })
 	app.Get("/logout", routes.UILogout)
-	app.Get("/ws", routes.Upgrade, websocket.New(routes.Websocket))
-	app.Post("/shorty", routes.UICreate)
+	app.Post("/shorty", routes.UICreate) // SSE
+	app.Get("/events", routes.SSEHandler)
 	app.Patch("/:oldName/:newName", routes.UIChange)
 	app.Delete("/:shorty", routes.UIDelete)
 

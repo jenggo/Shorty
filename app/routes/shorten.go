@@ -5,6 +5,7 @@ import (
 
 	"shorty/pkg"
 	"shorty/types"
+	"shorty/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -27,7 +28,7 @@ func Shorten(ctx *fiber.Ctx) error {
 	}
 
 	if body.Shorty == "" {
-		body.Shorty = pkg.HumanFriendlyEnglishString(8)
+		body.Shorty = utils.HumanFriendlyEnglishString(8)
 	}
 
 	if err := pkg.Redis.Set(ctx.Context(), body.Shorty, body.Url, body.Expired, true); err != nil {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	// biome-ignore lint: false positive
 	export let size = 'w-6 h-6';
 </script>
 

@@ -210,34 +210,31 @@ func UIUpload(ctx *fiber.Ctx) error {
 			Message: "Invalid file upload: " + err.Error(),
 		})
 	}
-
-	mfile, err := file.Open()
-	if err != nil {
-		log.Error().Caller().Err(err).Send()
-		return fmt.Errorf("Failed to process file %s: %v", file.Filename, err)
-	}
-	defer mfile.Close()
-
-	s3, err := pkg.NewS3(ctx.Context())
-	if err != nil {
-		log.Error().Caller().Err(err).Send()
-		return fmt.Errorf("Failed to create S3 client: %v", err)
-	}
-
 	fileName := utils.SlugifyFilename(file.Filename)
-	if err := s3.Upload(ctx.Context(), fileName, mfile, file.Size, config.Use.S3.Expired); err != nil {
-		log.Error().Caller().Err(err).Send()
-		return fmt.Errorf("Failed to upload file: %v", err)
+
+	byteFile, err := utils.Storage.Get(fileName)
+	if err == nil && byteFile != nil {
+		return fmt.Errorf("%s already exists", fileName)
 	}
 
-	url, err := s3.GeneratePresignedURL(ctx.Context(), fileName, config.Use.S3.Expired)
+	// show error (normal is: The specified key does not exist)
+	log.Debug().Caller().Err(err).Send()
+
+	if err := ctx.SaveFileToStorage(file, fileName, utils.Storage); err != nil {
+		log.Error().Caller().Err(err).Send()
+		return fmt.Errorf("failed save file to storage: %v", err)
+	}
+
+	reqParams := make(url.Values)
+	reqParams.Set("response-content-disposition", "inline")
+	url, err := utils.Storage.Conn().PresignedGetObject(ctx.Context(), config.Use.S3.Bucket, fileName, config.Use.S3.Expired, reqParams)
 	if err != nil {
 		log.Error().Caller().Err(err).Send()
-		return fmt.Errorf("Failed to generate presigned url: %v", err)
+		return fmt.Errorf("failed to get presigned url: %v", err)
 	}
 
-	shorty := pkg.HumanFriendlyEnglishString(8)
-	if err := pkg.Redis.Set(ctx.Context(), shorty, url, config.Use.S3.Expired, true); err != nil {
+	shorty := utils.HumanFriendlyEnglishString(8)
+	if err := pkg.Redis.Set(ctx.Context(), shorty, url.String(), config.Use.S3.Expired, true); err != nil {
 		log.Error().Caller().Err(err).Send()
 		return fmt.Errorf("Failed to set redis key: %v", err)
 	}

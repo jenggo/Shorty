@@ -6,9 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gofiber/storage/minio"
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog/log"
 )
+
+var Storage *minio.Storage
 
 func SlugifyFilename(filename string) string {
 	// Common double extensions
