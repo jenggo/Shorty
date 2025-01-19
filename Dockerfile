@@ -15,7 +15,7 @@ RUN bun run lint
 RUN bun run build
 
 # do not use scratch, uploading will failed if file >= 20MB
-FROM busybox:musl
+FROM cgr.dev/chainguard/static
 
 WORKDIR /app
 

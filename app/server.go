@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/earlydata"
-	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
@@ -58,7 +57,7 @@ func RunServer() (app *fiber.App, err error) {
 	app.Use(favicon.New())
 	app.Use(helmet.New())
 	app.Use(earlydata.New())
-	app.Use(etag.New())
+	// app.Use(etag.New()) // --> SSE does not work if it enable
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	router(app)
 

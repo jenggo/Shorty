@@ -9,12 +9,12 @@ require (
 	github.com/goccy/go-json v0.10.4
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/keyauth/v2 v2.2.1
-	github.com/gofiber/storage/minio v0.2.4
+	github.com/gofiber/storage/minio v0.2.5
 	github.com/gofiber/storage/redis/v3 v3.1.3
 	github.com/gofiber/template/html/v2 v2.1.3
 	github.com/gosimple/slug v1.15.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
-	github.com/minio/minio-go/v7 v7.0.83
+	github.com/minio/minio-go/v7 v7.0.84
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/rs/zerolog v1.33.0
 	github.com/valyala/fasthttp v1.58.0
