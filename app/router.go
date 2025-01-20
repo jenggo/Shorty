@@ -2,31 +2,34 @@ package app
 
 import (
 	"shorty/app/routes"
+	"shorty/app/routes/ui"
 	"shorty/config"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/static"
 )
 
 func router(app *fiber.App) {
 	// For ping-pong
-	app.Get("/ping", func(ctx *fiber.Ctx) error { return ctx.SendString("pong") })
+	app.Get("/ping", func(ctx fiber.Ctx) error { return ctx.SendString("pong") })
 
 	// UI
-	routes.InitStore()
-	routes.InitOAuth()
-	app.Static("/", "ui", fiber.Static{Compress: true})
-	app.Get("/auth/gitlab", routes.UIOauthLogin)
-	app.Get("/auth/gitlab/callback", routes.UICallback)
-	app.Get("/auth/check", routes.CheckSession)
-	app.Get("/login", func(ctx *fiber.Ctx) error { return ctx.Render("login", nil) })
-	app.Get("/logout", routes.UILogout)
-	app.Post("/shorty", routes.UICreate) // SSE
-	app.Get("/events", routes.SSEHandler)
-	app.Patch("/:oldName/:newName", routes.UIChange)
-	app.Delete("/:shorty", routes.UIDelete)
+	ui.InitStore()
+	ui.InitOAuth()
+	app.Get("/*", static.New("ui", static.Config{Compress: true}))
+	app.Get("/auth/gitlab", ui.OauthLogin)
+	app.Get("/auth/gitlab/callback", ui.Callback)
+	app.Get("/auth/check", ui.CheckSession)
+	app.Get("/login", func(ctx fiber.Ctx) error { return ctx.Render("login", nil) })
+	app.Get("/logout", ui.Logout)
+	app.Post("/shorty", ui.Create)
+	app.Post("/check-filename", ui.CheckFilename)
+	app.Get("/events", ui.SSE) // SSE
+	app.Patch("/:oldName/:newName", ui.Change)
+	app.Delete("/:shorty", ui.Delete)
 
 	if config.Use.S3.Enable {
-		app.Post("/upload", routes.UIUpload)
+		app.Post("/upload", ui.Upload)
 	}
 
 	// Get real url

@@ -9,10 +9,10 @@ import (
 	"shorty/types"
 	"shorty/utils"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func Delete(ctx *fiber.Ctx) error {
+func Delete(ctx fiber.Ctx) error {
 	shorturl := ctx.Params("shorty")
 
 	key, err := pkg.Redis.Get(ctx.Context(), shorturl)

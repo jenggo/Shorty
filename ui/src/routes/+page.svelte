@@ -151,14 +151,14 @@
 				class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 				on:click={() => (showCreateForm = !showCreateForm)}
 			>
-				{showCreateForm ? 'Cancel' : 'Create New'}
+				{showCreateForm ? 'Close' : 'Create New'}
 			</button>
 			{#if $auth.s3Enabled}
 				<button
 					class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
 					on:click={() => (showUploadForm = !showUploadForm)}
 				>
-					{showUploadForm ? 'Cancel' : 'Upload File'}
+					{showUploadForm ? 'Close' : 'Upload File'}
 				</button>
 			{/if}
 			<button

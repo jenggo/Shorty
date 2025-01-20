@@ -8,16 +8,16 @@ import (
 	"shorty/config"
 	"shorty/pkg"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/keyauth/v2"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/keyauth"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/blake2b"
 )
 
-func verifyKey() func(*fiber.Ctx) error {
+func verifyKey() func(c fiber.Ctx) error {
 	return keyauth.New(keyauth.Config{
-		Validator: func(c *fiber.Ctx, key string) (bool, error) {
+		Validator: func(c fiber.Ctx, key string) (bool, error) {
 			if err := verifyAPIKey(c.Context(), key); err != nil {
 				log.Error().Caller().Err(err).Str("path", c.Path()).Str("hash", key).Send()
 				return false, keyauth.ErrMissingOrMalformedAPIKey

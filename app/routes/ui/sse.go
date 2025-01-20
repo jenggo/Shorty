@@ -1,46 +1,38 @@
-package routes
+package ui
 
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"shorty/pkg"
 	"shorty/types"
 	"time"
 
-	"github.com/goccy/go-json"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
-	"github.com/valyala/fasthttp"
 )
 
-func SSEHandler(c *fiber.Ctx) error {
-	if err := validateSession(c); err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(types.Response{
+func SSE(ctx fiber.Ctx) error {
+	sessionID, err := validateSession(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
 			Error:   true,
 			Message: err.Error(),
 		})
 	}
 
-	sess, err := getSession(c)
-	if err != nil {
-		return err
-	}
-	sessionID := sess.ID()
-	log.Debug().Str("sessionID", sessionID).Msg("connected SSE client")
+	log.Debug().Str("sessionID", *sessionID).Msg("connected SSE client")
 
 	// Set headers
-	c.Context().SetContentType("text/event-stream")
-	c.Context().Response.Header.Set(fiber.HeaderCacheControl, "no-cache")
-	c.Context().Response.Header.Set(fiber.HeaderConnection, fiber.HeaderKeepAlive)
-	c.Context().Response.Header.Set(fiber.HeaderTransferEncoding, "chunked")
-	c.Context().Response.Header.Set(fiber.HeaderAccessControlAllowHeaders, fiber.HeaderCacheControl)
-	c.Context().Response.Header.Set(fiber.HeaderAccessControlAllowCredentials, "true")
+	ctx.Set("Content-Type", "text/event-stream")
+	ctx.Set("Cache-Control", "no-cache")
+	ctx.Set("Connection", "keep-alive")
+	ctx.Set("Transfer-Encoding", "chunked")
 
 	done := make(chan bool)
-	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+	return ctx.SendStreamWriter(func(w *bufio.Writer) {
 		defer close(done)
-
 		// Send connected event
 		if _, err := fmt.Fprintf(w, "event: connected\ndata: true\n\n"); err != nil {
 			log.Error().Err(err).Msg("failed to send connected event")
@@ -75,7 +67,10 @@ func SSEHandler(c *fiber.Ctx) error {
 				}
 
 				if _, err := fmt.Fprintf(w, "data: %s\n\n", string(jsonData)); err != nil {
-					log.Error().Caller().Err(err).Msg("failed to write data")
+					if err.Error() != "connection closed" {
+						log.Error().Caller().Err(err).Msg("failed to write data")
+					}
+
 					return
 				}
 
@@ -84,11 +79,9 @@ func SSEHandler(c *fiber.Ctx) error {
 					return
 				}
 			case <-done:
-				log.Debug().Str("sessionID", sessionID).Msg("client disconnected")
+				log.Debug().Str("sessionID", *sessionID).Msg("client disconnected")
 				return
 			}
 		}
-	}))
-
-	return nil
+	})
 }

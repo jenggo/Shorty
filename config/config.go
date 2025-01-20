@@ -24,6 +24,7 @@ type config struct {
 			User     string `yaml:"user" env:"AUTH_USER" env-default:"admin"`
 			Password string `yaml:"password" env:"AUTH_PASSWORD" env-required:"true"`
 		} `yaml:"auth"`
+		BaseURL string `yaml:"base_url" env:"BASE_URL" env-default:"https://u.nusatek.dev"`
 	} `yaml:"app"`
 
 	Redis struct {
@@ -52,7 +53,7 @@ type config struct {
 			Secret string `yaml:"secret" env:"S3_SECRET"`
 		} `yaml:"key"`
 		Tracing         bool          `yaml:"tracing" env:"tracing" env-default:"false"`
-		Expired         time.Duration `yaml:"expired" env:"S3_EXPIRED" env-default:"24h"`
+		Expired         time.Duration `yaml:"expired" env:"S3_EXPIRED" env-default:"12h"`
 		CleanupInterval time.Duration `yaml:"cleanup_interval" env:"S3_CLEANUP_INTERVAL" env-default:"1h"`
 	} `yaml:"s3"`
 }

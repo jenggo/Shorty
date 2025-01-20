@@ -5,10 +5,10 @@ import (
 	"shorty/pkg"
 	"shorty/types"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func Change(ctx *fiber.Ctx) error {
+func Change(ctx fiber.Ctx) error {
 	oldName := ctx.Params("oldName")
 	urlValue, err := pkg.Redis.Get(ctx.Context(), oldName)
 	if err != nil {
@@ -19,7 +19,7 @@ func Change(ctx *fiber.Ctx) error {
 
 	var body types.Shorten
 	if newName == "" {
-		if err := ctx.BodyParser(&body); err != nil {
+		if err := ctx.Bind().Body(&body); err != nil {
 			return err
 		}
 

@@ -7,12 +7,13 @@ import (
 	"shorty/types"
 	"shorty/utils"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/client"
 )
 
-func Shorten(ctx *fiber.Ctx) error {
+func Shorten(ctx fiber.Ctx) error {
 	var body types.Shorten
-	if err := ctx.BodyParser(&body); err != nil {
+	if err := ctx.Bind().Body(&body); err != nil {
 		return err
 	}
 
@@ -21,10 +22,15 @@ func Shorten(ctx *fiber.Ctx) error {
 	}
 
 	// Check that url
-	testUrl := fiber.Head(body.Url)
-	statusCode, _, errs := testUrl.Bytes()
-	if len(errs) > 0 && statusCode == 404 && statusCode >= 500 {
-		return fmt.Errorf("cannot reach %s, status code: %d, errors: %v", body.Url, statusCode, errs)
+	cc := client.New()
+	testUrl, err := cc.Head(body.Url)
+	if err != nil {
+		return fmt.Errorf("error when reach %s: %v", body.Url, err)
+	}
+
+	statusCode := testUrl.StatusCode()
+	if statusCode == 404 || statusCode >= 500 {
+		return fmt.Errorf("cannot reach %s, status code: %d", body.Url, statusCode)
 	}
 
 	if body.Shorty == "" {

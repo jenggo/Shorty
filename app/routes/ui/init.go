@@ -1,4 +1,4 @@
-package routes
+package ui
 
 import (
 	"shorty/config"
@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/storage/minio"
 	"github.com/gofiber/storage/redis/v3"
 	"github.com/rs/zerolog/log"
@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	sessionStore = session.New()
+	sessionStore = session.NewStore()
 	oauthConfig  *oauth2.Config
 )
 
@@ -48,11 +48,11 @@ func InitStore() {
 		Database: config.Use.Redis.DB.Auth + 1,
 	})
 
-	sessionStore = session.New(session.Config{
-		Storage:        redisStore,
-		Expiration:     168 * time.Hour,
-		CookieSecure:   true,
-		CookieHTTPOnly: true,
+	sessionStore = session.NewStore(session.Config{
+		Storage:         redisStore,
+		AbsoluteTimeout: 168 * time.Hour,
+		CookieSecure:    true,
+		CookieHTTPOnly:  true,
 	})
 
 	utils.Storage = minio.New(minio.Config{

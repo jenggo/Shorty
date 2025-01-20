@@ -9,27 +9,75 @@
 
 	let files: FileList | null = null;
 	let uploading = false;
+	let checking = false;
 	let progress = 0;
 	let fileInput: HTMLInputElement;
+	let currentXhr: XMLHttpRequest | null = null;
 
 	// Define max file size (100MB in bytes)
-	const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+	// const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+	const MAX_FILE_SIZE = 100 * 1000 * 1000; // 100MB
 
 	// Helper function to format file size
 	function formatFileSize(bytes: number): string {
 		if (bytes === 0) return '0 Bytes';
-		const k = 1024;
+		// const k = 1024;
+		const k = 1000;
 		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
 		const i = Math.floor(Math.log(bytes) / Math.log(k));
 		return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 	}
 
+	function cancelUpload() {
+		if (currentXhr) {
+			currentXhr.abort();
+			currentXhr = null;
+		}
+		resetUpload();
+	}
+
+	async function checkFilename(filename: string): Promise<boolean> {
+		checking = true;
+		try {
+			const formData = new FormData();
+			formData.append('filename', filename);
+
+			const response = await fetch(`${API_BASE_URL}/check-filename`, {
+				method: 'POST',
+				credentials: 'include',
+				body: formData
+			});
+
+			const data = await response.json();
+			if (!response.ok) {
+				throw new Error(data.message || 'Failed to check filename');
+			}
+
+			return true;
+		} catch (error) {
+			console.error('Filename check error:', error);
+			toast.error(
+				'Filename check failed',
+				error instanceof Error ? error.message : 'File already exists'
+			);
+			return false;
+		} finally {
+			checking = false;
+		}
+	}
+
 	async function handleUpload() {
 		if (!files?.[0] || uploading) return;
 
-		// Check file size before uploading
+		// Check file size before uploading (checking twice)
 		if (files[0].size > MAX_FILE_SIZE) {
 			toast.error('File size error', 'File size exceeds limit');
+			resetUpload();
+			return;
+		}
+
+		const isFilenameAvailable = await checkFilename(files[0].name);
+		if (!isFilenameAvailable) {
 			resetUpload();
 			return;
 		}
@@ -42,7 +90,8 @@
 
 		try {
 			const xhr = new XMLHttpRequest();
-			xhr.timeout = 30 * 60 * 1000; // 30 minutes timeout
+			currentXhr = xhr;
+			xhr.timeout = 30 * 60 * 1000;
 
 			xhr.upload.onprogress = (event) => {
 				if (event.lengthComputable) {
@@ -81,12 +130,14 @@
 				error instanceof Error ? error.message : 'Unknown error occurred'
 			);
 		} finally {
+			currentXhr = null;
 			resetUpload();
 		}
 	}
 
 	function resetUpload() {
 		uploading = false;
+		checking = false;
 		progress = 0;
 		files = null;
 		if (fileInput) {
@@ -95,7 +146,17 @@
 	}
 
 	function handleFileSelect() {
-		if (files?.[0] && !uploading) {
+		if (!files?.[0]) return;
+
+		// Check file size first
+		if (files[0].size > MAX_FILE_SIZE) {
+			toast.error('File size error', 'File size exceeds limit');
+			resetUpload();
+			return;
+		}
+
+		// Only proceed with upload if file size is within limit
+		if (!uploading) {
 			handleUpload();
 		}
 	}
@@ -112,7 +173,7 @@
 			bind:files
 			bind:this={fileInput}
 			on:change={handleFileSelect}
-			disabled={uploading}
+			disabled={uploading || checking}
 			class="block w-full text-sm text-gray-500
             file:mr-4 file:cursor-pointer file:rounded-full
             file:border-0 file:bg-blue-50 file:px-4
@@ -126,6 +187,10 @@
 		/>
 	</div>
 
+	{#if checking}
+		<p class="text-sm text-gray-600">Checking filename availability...</p>
+	{/if}
+
 	{#if uploading}
 		<div class="mb-4">
 			<div class="h-2 w-full rounded-full bg-gray-200">
@@ -135,6 +200,12 @@
 				></div>
 			</div>
 			<p class="mt-1 text-sm text-gray-600">{progress}% uploaded</p>
+			<button
+				on:click={cancelUpload}
+				class="rounded bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600"
+			>
+				Cancel
+			</button>
 		</div>
 	{/if}
 </div>

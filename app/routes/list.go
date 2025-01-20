@@ -4,10 +4,10 @@ import (
 	"shorty/pkg"
 	"shorty/types"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func List(ctx *fiber.Ctx) error {
+func List(ctx fiber.Ctx) error {
 	list, err := pkg.Redis.GetAll(ctx.Context())
 	if err != nil {
 		return err

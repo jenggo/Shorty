@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/earlydata"
-	"github.com/gofiber/fiber/v2/middleware/favicon"
-	"github.com/gofiber/fiber/v2/middleware/helmet"
-	"github.com/gofiber/fiber/v2/middleware/pprof"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/earlydata"
+	"github.com/gofiber/fiber/v3/middleware/favicon"
+	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/pprof"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/keyauth/v2"
 	"github.com/gofiber/template/html/v2"
 	"github.com/rs/zerolog/log"
@@ -21,17 +21,19 @@ import (
 
 func RunServer() (app *fiber.App, err error) {
 	appCfg := fiber.Config{
-		JSONEncoder:           json.Marshal,
-		JSONDecoder:           json.Unmarshal,
-		DisableStartupMessage: true,
-		ErrorHandler:          errHandler,
-		ProxyHeader:           "Cf-Connecting-Ip",
-		Views:                 html.New("ui", ".html"),
+		AppName:       config.AppName,
+		JSONEncoder:   json.Marshal,
+		JSONDecoder:   json.Unmarshal,
+		ErrorHandler:  errHandler,
+		ProxyHeader:   "Cf-Connecting-Ip",
+		Views:         html.New("ui", ".html"),
+		CaseSensitive: true,
+		// DisableStartupMessage: true,
 	}
 
 	if config.Use.S3.Enable {
 		appCfg.StreamRequestBody = true
-		appCfg.BodyLimit = -1
+		appCfg.BodyLimit = 100 * 1024 * 1024
 	} else {
 		appCfg.ReadTimeout = 10 * time.Second
 	}
@@ -48,16 +50,14 @@ func RunServer() (app *fiber.App, err error) {
 	}
 
 	app.Use(cors.New(cors.Config{
-		// AllowOriginsFunc: func(origin string) bool { return true }, // debugging only
-		AllowOrigins:     "https://u.nusatek.dev",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Cache-Control",
+		AllowOrigins:     []string{config.Use.App.BaseURL},
+		AllowHeaders:     []string{"Origin, Content-Type, Accept, Authorization, Cache-Control"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 	app.Use(favicon.New())
 	app.Use(helmet.New())
 	app.Use(earlydata.New())
-	// app.Use(etag.New()) // --> SSE does not work if it enable
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	router(app)
 
@@ -72,7 +72,7 @@ func RunServer() (app *fiber.App, err error) {
 	return
 }
 
-func errHandler(c *fiber.Ctx, err error) error {
+func errHandler(c fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
 	var e *fiber.Error
 	if errors.As(err, &e) {
