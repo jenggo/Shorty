@@ -12,9 +12,9 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/earlydata"
 	"github.com/gofiber/fiber/v3/middleware/favicon"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/keyauth"
 	"github.com/gofiber/fiber/v3/middleware/pprof"
 	"github.com/gofiber/fiber/v3/middleware/recover"
-	"github.com/gofiber/keyauth/v2"
 	"github.com/gofiber/template/html/v2"
 	"github.com/rs/zerolog/log"
 )
@@ -28,14 +28,13 @@ func RunServer() (app *fiber.App, err error) {
 		ProxyHeader:   "Cf-Connecting-Ip",
 		Views:         html.New("ui", ".html"),
 		CaseSensitive: true,
-		// DisableStartupMessage: true,
+		ReadTimeout:   10 * time.Second,
 	}
 
 	if config.Use.S3.Enable {
 		appCfg.StreamRequestBody = true
 		appCfg.BodyLimit = 100 * 1024 * 1024
-	} else {
-		appCfg.ReadTimeout = 10 * time.Second
+		appCfg.ReadTimeout = time.Minute
 	}
 
 	if !config.Use.App.Cloudflare {
@@ -64,7 +63,7 @@ func RunServer() (app *fiber.App, err error) {
 	go func() {
 		log.Log().Msgf("» %s %s listen: %s", config.AppName, config.AppVersion, config.Use.App.Listen)
 
-		if err := app.Listen(config.Use.App.Listen); err != nil {
+		if err := app.Listen(config.Use.App.Listen, fiber.ListenConfig{DisableStartupMessage: true}); err != nil {
 			log.Error().Caller().Err(err).Send()
 		}
 	}()

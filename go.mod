@@ -8,7 +8,6 @@ require (
 	github.com/archdx/zerolog-sentry v1.8.5
 	github.com/goccy/go-json v0.10.4
 	github.com/gofiber/fiber/v3 v3.0.0-beta.4
-	github.com/gofiber/keyauth/v2 v2.2.1
 	github.com/gofiber/storage/minio v0.2.5
 	github.com/gofiber/storage/redis/v3 v3.1.3
 	github.com/gofiber/template/html/v2 v2.1.3
@@ -32,7 +31,6 @@ require (
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/getsentry/sentry-go v0.31.1 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/gofiber/fiber/v2 v2.52.6 // indirect
 	github.com/gofiber/schema v1.2.0 // indirect
 	github.com/gofiber/template v1.8.3 // indirect
 	github.com/gofiber/utils v1.1.0 // indirect
@@ -44,10 +42,8 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
-	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.2.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

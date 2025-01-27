@@ -3,12 +3,12 @@ package ui
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"shorty/pkg"
 	"shorty/types"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
 )

@@ -1,16 +1,14 @@
 package ui
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"shorty/config"
 	"shorty/types"
-	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/client"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,15 +20,6 @@ func Callback(ctx fiber.Ctx) error {
 	}
 	defer sess.Release()
 
-	code := ctx.Query("code")
-	if code == "" {
-		return ctx.Status(fiber.StatusBadRequest).JSON(types.Response{
-			Error:   true,
-			Message: "No authorization code received",
-		})
-	}
-
-	// Verify state
 	expectedState := sess.Get("oauth_state")
 	if expectedState != ctx.Query("state") {
 		return ctx.Status(fiber.StatusBadRequest).JSON(types.Response{
@@ -39,61 +28,32 @@ func Callback(ctx fiber.Ctx) error {
 		})
 	}
 
-	httpClient := &http.Client{
-		Timeout: time.Second * 30,
-	}
-
-	// Prepare token request
-	data := url.Values{
-		"grant_type":   {"authorization_code"},
-		"code":         {code},
-		"redirect_uri": {oauthConfig.RedirectURL},
-	}
-
-	req, err := http.NewRequest("POST", oauthConfig.Endpoint.TokenURL, strings.NewReader(data.Encode()))
+	code := ctx.Query("code")
+	token, err := oauthConfig.Exchange(ctx.Context(), code)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create token request")
+		log.Error().Err(err).Msg("failed to exchange code for token")
+		return fmt.Errorf("failed to exchange code for token")
+	}
+
+	cc := client.New()
+	cc.SetTimeout(10 * time.Second)
+	resp, err := cc.Get(fmt.Sprintf("%s/api/v4/user", config.Use.Oauth.BaseURL), client.Config{
+		Header: map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", token.AccessToken),
+		},
+	})
+	if err != nil {
+		log.Error().Err(err).Send()
 		return fmt.Errorf("failed to create token request")
 	}
 
-	req.SetBasicAuth(oauthConfig.ClientID, oauthConfig.ClientSecret)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to execute token request")
-		return fmt.Errorf("failed to execute token request")
+	if resp.StatusCode() != fiber.StatusOK {
+		log.Error().Caller().Int("status code", resp.StatusCode()).Msg("Failed to authenticate user")
+		return fmt.Errorf("Failed to authenticate user")
 	}
-	defer resp.Body.Close()
-
-	var tokenResponse struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		log.Error().Err(err).Msg("failed to parse token response")
-		return fmt.Errorf("failed to parse token response")
-	}
-
-	// Get user info
-	userReq, err := http.NewRequest("GET", config.Use.Oauth.BaseURL+"/api/v4/user", nil)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create user info request")
-		return fmt.Errorf("failed to create user info request")
-	}
-
-	userReq.Header.Set("Authorization", "Bearer "+tokenResponse.AccessToken)
-	userResp, err := httpClient.Do(userReq)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get user info")
-		return fmt.Errorf("failed to get user info")
-	}
-	defer userResp.Body.Close()
 
 	var user oauthUserResponse
-	if err := json.NewDecoder(userResp.Body).Decode(&user); err != nil {
+	if err := json.Unmarshal(resp.Body(), &user); err != nil {
 		log.Error().Err(err).Msg("failed to decode user info")
 		return fmt.Errorf("failed to decode user info")
 	}
