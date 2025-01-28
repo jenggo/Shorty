@@ -14,7 +14,6 @@ RUN bun run build
 # do not use scratch, uploading will failed if file >= 20MB
 FROM chainguard/static
 
-
 COPY shorty config.yaml ./
 COPY --from=0 /app/build ui/
 

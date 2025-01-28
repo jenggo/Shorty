@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"shorty/types"
 	"shorty/utils"
 
@@ -15,20 +14,29 @@ func OauthLogin(ctx fiber.Ctx) error {
 	sess, err := sessionStore.Get(ctx)
 	if err != nil {
 		log.Error().Caller().Err(err).Msg("failed to get session")
-		return fmt.Errorf("failed to get session")
+		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
+			Error:   true,
+			Message: "Failed to initialize login session",
+		})
 	}
 	defer sess.Release()
 
 	if !sess.Fresh() {
 		if err := sess.Regenerate(); err != nil {
-			return ctx.SendStatus(fiber.StatusInternalServerError)
+			return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
+				Error:   true,
+				Message: "Failed to regenerate session",
+			})
 		}
 	}
 
 	sess.Set("oauth_state", state)
 	if err := sess.Save(); err != nil {
 		log.Error().Err(err).Msg("failed to save session")
-		return fmt.Errorf("failed to save session")
+		return ctx.Status(fiber.StatusInternalServerError).JSON(types.Response{
+			Error:   true,
+			Message: "Failed to save login session",
+		})
 	}
 
 	url := oauthConfig.AuthCodeURL(state)
