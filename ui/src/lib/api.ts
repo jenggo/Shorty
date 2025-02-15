@@ -28,7 +28,7 @@ class ApiClient {
 	async createShorty(url: string, customName?: string) {
 		return await this.fetchWithCredentials(`${API_BASE_URL}/shorty`, {
 			method: 'POST',
-			body: JSON.stringify({ url, custom_name: customName })
+			body: JSON.stringify({ url, shorty: customName })
 		});
 	}
 

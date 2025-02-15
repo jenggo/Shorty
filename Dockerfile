@@ -1,4 +1,17 @@
-FROM oven/bun:alpine
+# wasm
+FROM golang:alpine AS wasm
+
+WORKDIR /src
+
+COPY wasm/go.* ./
+RUN go mod download -x
+
+COPY wasm/ ./
+RUN GOOS=js GOARCH=wasm go build -o web/app.wasm
+RUN cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/
+
+# svelte
+FROM oven/bun:alpine AS svelte
 
 ARG VITE_API_BASE_URL=u.nusatek.dev
 
@@ -15,7 +28,8 @@ RUN bun run build
 FROM chainguard/static
 
 COPY shorty config.yaml ./
-COPY --from=0 /app/build ui/
+COPY --from=wasm /src/web web/
+COPY --from=svelte /app/build ui/
 
 EXPOSE 1106
 

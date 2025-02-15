@@ -1,15 +1,13 @@
 package utils
 
 import (
-	"time"
-
-	"golang.org/x/exp/rand"
+	"math/rand/v2"
 )
 
 // copy from https://github.com/xyproto/randomstring/blob/main/randomstring.go
 
 var (
-	random = rand.New(rand.NewSource(uint64(time.Now().Local().UnixNano())))
+	random = rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
 	freq   = map[rune]int{
 		'e': 21912,
 		't': 16587,
@@ -92,7 +90,7 @@ var (
 )
 
 func pickLetter() rune {
-	target := random.Intn(freqsum)
+	target := random.IntN(freqsum)
 	selected := 'a'
 	n := 0
 	for k, v := range freq {
@@ -106,7 +104,7 @@ func pickLetter() rune {
 }
 
 func pickVowel() rune {
-	target := random.Intn(freqsumVowel)
+	target := random.IntN(freqsumVowel)
 	selected := 'a'
 	n := 0
 	for k, v := range freqVowel {
@@ -120,7 +118,7 @@ func pickVowel() rune {
 }
 
 func pickCons() rune {
-	target := random.Intn(freqsumCons)
+	target := random.IntN(freqsumCons)
 	selected := 't'
 	n := 0
 	for k, v := range freqCons {
@@ -134,7 +132,7 @@ func pickCons() rune {
 }
 
 func HumanFriendlyEnglishString(length int) string {
-	vowelOffset := random.Intn(2)
+	vowelOffset := random.IntN(2)
 	vowelDistribution := 2
 	b := make([]byte, length)
 	for i := 0; i < length; i++ {
@@ -142,7 +140,7 @@ func HumanFriendlyEnglishString(length int) string {
 		switch {
 		case (i+vowelOffset)%vowelDistribution == 0:
 			b[i] = byte(pickVowel())
-		case random.Intn(100) > 0: // 99 of 100 times
+		case random.IntN(100) > 0: // 99 of 100 times
 			b[i] = byte(pickCons())
 			// Don't repeat
 			if i >= 1 && b[i] == b[i-1] {
