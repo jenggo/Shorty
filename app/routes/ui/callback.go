@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"shorty/config"
+	"strings"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -12,23 +13,30 @@ import (
 )
 
 func Callback(ctx fiber.Ctx) error {
+	basePath := ""
+	routePath := ctx.Route().Path
+
+	if strings.Contains(ctx.Path(), "/web/") {
+		basePath = "/web"
+	}
+
 	sess, err := sessionStore.Get(ctx)
 	if err != nil {
 		log.Error().Caller().Err(err).Msg("failed to get session")
-		return ctx.Redirect().To("/login?error=Failed to initialize session")
+		return ctx.Redirect().To(basePath + "/login?error=Failed to initialize session")
 	}
 	defer sess.Release()
 
 	expectedState := sess.Get("oauth_state")
 	if expectedState != ctx.Query("state") {
-		return ctx.Redirect().To("/login?error=Invalid OAuth state, possible CSRF attack")
+		return ctx.Redirect().To(basePath + "/login?error=Invalid OAuth state, possible CSRF attack")
 	}
 
 	code := ctx.Query("code")
-	token, err := oauthConfig.Exchange(ctx.Context(), code)
+	token, err := getOAuthConfig(routePath).Exchange(ctx.Context(), code)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to exchange code for token")
-		return ctx.Redirect().To("/login?error=Failed to authenticate with GitLab")
+		return ctx.Redirect().To(basePath + "/login?error=Failed to authenticate with GitLab")
 	}
 
 	cc := client.New()
@@ -40,18 +48,18 @@ func Callback(ctx fiber.Ctx) error {
 	})
 	if err != nil {
 		log.Error().Err(err).Send()
-		return ctx.Redirect().To("/login?error=Failed to fetch user information")
+		return ctx.Redirect().To(basePath + "/login?error=Failed to fetch user information")
 	}
 
 	if resp.StatusCode() != fiber.StatusOK {
 		log.Error().Caller().Int("status code", resp.StatusCode()).Msg("Failed to authenticate user")
-		return ctx.Redirect().To("/login?error=Failed to authenticate with GitLab: invalid response")
+		return ctx.Redirect().To(basePath + "/login?error=Failed to authenticate with GitLab: invalid response")
 	}
 
 	var user oauthUserResponse
 	if err := json.Unmarshal(resp.Body(), &user); err != nil {
 		log.Error().Err(err).Msg("failed to decode user info")
-		return ctx.Redirect().To("/login?error=Failed to process user information")
+		return ctx.Redirect().To(basePath + "/login?error=Failed to process user information")
 	}
 
 	// Check if user is external
@@ -59,15 +67,15 @@ func Callback(ctx fiber.Ctx) error {
 		log.Warn().
 			Str("username", user.Username).
 			Msg("external user attempted to login")
-		return ctx.Redirect().To("/login?error=External users are not allowed to login")
+		return ctx.Redirect().To(basePath + "/login?error=External users are not allowed to login")
 	}
 
 	// Set session
 	sess.Set("name", user.Username)
 	if err := sess.Save(); err != nil {
 		log.Error().Err(err).Msg("failed to save session")
-		return ctx.Redirect().To("/login?error=Failed to create user session")
+		return ctx.Redirect().To(basePath + "/login?error=Failed to create user session")
 	}
 
-	return ctx.Redirect().To("/")
+	return ctx.Redirect().To(basePath + "/")
 }

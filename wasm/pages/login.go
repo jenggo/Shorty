@@ -16,6 +16,23 @@ type Login struct {
 	error   string
 }
 
+func (l *Login) OnMount(ctx app.Context) {
+	// If already authenticated, redirect to home
+	if l.Auth != nil {
+		if err := l.Auth.CheckSession(); err == nil && l.Auth.Data.IsAuthenticated {
+			app.Window().Get("location").Set("href", "/web")
+			return
+		}
+	}
+
+	// Check URL parameters for error message
+	urlParams := app.Window().URL().Query()
+	if errorMsg := urlParams.Get("error"); errorMsg != "" {
+		l.error = errorMsg
+		components.ShowToast("Login Error", errorMsg, "error")
+	}
+}
+
 func (l *Login) Render() app.UI {
 	return app.Div().
 		Class("flex min-h-screen items-center justify-center bg-gray-50").
@@ -63,7 +80,7 @@ func (l *Login) HandleLogin(ctx app.Context, e app.Event) {
 	})
 
 	go func() {
-		resp, err := http.Get(types.API_BASE_URL + "/auth/gitlab")
+		resp, err := http.Get(types.API_BASE_URL + "/web/auth/gitlab")
 		if err != nil {
 			l.handleError(ctx, "Failed to initiate login: "+err.Error())
 			return
@@ -99,13 +116,4 @@ func (l *Login) handleError(ctx app.Context, msg string) {
 		ctx.Update()
 	})
 	components.ShowToast("Login Error", msg, "error")
-}
-
-func (l *Login) OnMount(ctx app.Context) {
-	// Check URL parameters for error message
-	urlParams := app.Window().URL().Query()
-	if errorMsg := urlParams.Get("error"); errorMsg != "" {
-		l.error = errorMsg
-		components.ShowToast("Login Error", errorMsg, "error")
-	}
 }

@@ -19,6 +19,8 @@ func router(app *fiber.App) {
 	ui.InitOAuth()
 
 	app.Use("/web", static.New("web", static.Config{Compress: true}))
+	app.Get("/web/auth/gitlab", ui.OauthLogin)
+	app.Get("/web/auth/gitlab/callback", ui.Callback)
 	app.Get("/web/*", func(ctx fiber.Ctx) error {
 		return ctx.SendFile("web/index.html")
 	})

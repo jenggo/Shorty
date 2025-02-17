@@ -9,9 +9,7 @@ import (
 const API_BASE_URL = "https://u.nusatek.dev"
 
 var jar, _ = cookiejar.New(nil)
-var DefaultClient = &http.Client{
-	Jar: jar,
-}
+var DefaultClient = &http.Client{Jar: jar}
 
 type ShortyData struct {
 	Shorty  string        `json:"shorty"`

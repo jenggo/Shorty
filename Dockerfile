@@ -7,7 +7,7 @@ COPY wasm/go.* ./
 RUN go mod download -x
 
 COPY wasm/ ./
-RUN GOOS=js GOARCH=wasm go build -o web/app.wasm
+RUN GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/app.wasm
 RUN cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/
 
 # svelte

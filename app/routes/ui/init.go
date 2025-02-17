@@ -4,6 +4,7 @@ import (
 	"shorty/config"
 	"shorty/utils"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3/middleware/session"
@@ -16,6 +17,7 @@ import (
 var (
 	sessionStore = session.NewStore()
 	oauthConfig  *oauth2.Config
+	// baseURL      string
 )
 
 type oauthUserResponse struct {
@@ -29,7 +31,6 @@ func InitOAuth() {
 	oauthConfig = &oauth2.Config{
 		ClientID:     config.Use.Oauth.ClientID,
 		ClientSecret: config.Use.Oauth.ClientSecret,
-		RedirectURL:  config.Use.Oauth.RedirectURI,
 		Scopes:       []string{"read_user"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:   config.Use.Oauth.BaseURL + "/oauth/authorize",
@@ -37,6 +38,16 @@ func InitOAuth() {
 			AuthStyle: oauth2.AuthStyleInHeader,
 		},
 	}
+}
+
+func getOAuthConfig(path string) *oauth2.Config {
+	cfg := *oauthConfig
+	cfg.RedirectURL = config.Use.App.BaseURL + "/auth/gitlab/callback"
+	if strings.Contains(path, "/web/") {
+		cfg.RedirectURL = config.Use.App.BaseURL + "/web/auth/gitlab/callback"
+	}
+
+	return &cfg
 }
 
 func InitStore() {

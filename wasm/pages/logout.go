@@ -15,8 +15,7 @@ type Logout struct {
 
 func (l *Logout) OnMount(ctx app.Context) {
 	go func() {
-		_, err := http.Get(types.API_BASE_URL + "/web/logout")
-		if err != nil {
+		if _, err := http.Get(types.API_BASE_URL + "/logout"); err != nil {
 			app.Log("logout error:", err)
 		}
 
@@ -27,7 +26,7 @@ func (l *Logout) OnMount(ctx app.Context) {
 			S3Enabled:       false,
 		})
 
-		// Redirect to login
+		// Redirect to login page
 		app.Window().Get("location").Set("href", "/web/login")
 	}()
 }

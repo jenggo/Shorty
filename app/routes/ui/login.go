@@ -10,6 +10,7 @@ import (
 
 func OauthLogin(ctx fiber.Ctx) error {
 	state := utils.GenerateState()
+	routePath := ctx.Route().Path
 
 	sess, err := sessionStore.Get(ctx)
 	if err != nil {
@@ -39,7 +40,7 @@ func OauthLogin(ctx fiber.Ctx) error {
 		})
 	}
 
-	url := oauthConfig.AuthCodeURL(state)
+	url := getOAuthConfig(routePath).AuthCodeURL(state)
 	return ctx.JSON(types.Response{
 		Error:   false,
 		Message: url,

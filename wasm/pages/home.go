@@ -28,6 +28,17 @@ type Home struct {
 }
 
 func (h *Home) OnMount(ctx app.Context) {
+	if h.Auth != nil {
+		if err := h.Auth.CheckSession(); err != nil && !h.Auth.Data.IsAuthenticated {
+			app.Window().Get("location").Set("href", "/web/login")
+			return
+		}
+	}
+
+	if h.SSE != nil {
+		h.SSE.Close()
+	}
+
 	h.initializeSSE(ctx)
 }
 
