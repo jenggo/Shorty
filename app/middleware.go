@@ -11,8 +11,8 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/keyauth"
 	"github.com/rs/zerolog/log"
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/blake2b"
 )
 
 func verifyKey() func(c fiber.Ctx) error {
@@ -40,12 +40,12 @@ func verifyAPIKey(ctx context.Context, hashed string) error {
 
 	h := []byte(hashed)
 	i := []byte(config.Use.App.Key)
-	k, err := blake2b.New256(nil)
-	if err != nil {
+
+	k := blake3.New()
+	if _, err := k.Write(i); err != nil {
 		log.Error().Caller().Err(err).Send()
 		return err
 	}
-	k.Write(i)
 	hash := k.Sum(nil)
 
 	if err := bcrypt.CompareHashAndPassword(h, hash); err != nil {
