@@ -1,8 +1,6 @@
 module shorty
 
-go 1.23.0
-
-toolchain go1.24.0
+go 1.24.1
 
 require (
 	github.com/archdx/zerolog-sentry v1.8.5
@@ -13,7 +11,7 @@ require (
 	github.com/gofiber/template/html/v2 v2.1.3
 	github.com/gosimple/slug v1.15.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
-	github.com/minio/minio-go/v7 v7.0.87
+	github.com/minio/minio-go/v7 v7.0.88
 	github.com/redis/go-redis/v9 v9.7.1
 	github.com/rs/zerolog v1.33.0
 	github.com/zeebo/blake3 v0.2.4
@@ -41,6 +39,7 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/crc64nvme v1.0.1 // indirect

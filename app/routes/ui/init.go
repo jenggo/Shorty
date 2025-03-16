@@ -33,9 +33,8 @@ func InitOAuth() {
 		ClientSecret: config.Use.Oauth.ClientSecret,
 		Scopes:       []string{"read_user"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:   config.Use.Oauth.BaseURL + "/oauth/authorize",
-			TokenURL:  config.Use.Oauth.BaseURL + "/oauth/token",
-			AuthStyle: oauth2.AuthStyleInHeader,
+			AuthURL:  config.Use.Oauth.BaseURL + "/oauth/authorize",
+			TokenURL: config.Use.Oauth.BaseURL + "/oauth/token",
 		},
 	}
 }

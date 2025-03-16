@@ -43,9 +43,9 @@ func CheckSession(ctx fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(fiber.Map{
-		"error": false,
-		"data": fiber.Map{
+	return ctx.JSON(types.Response{
+		Error: false,
+		Data: fiber.Map{
 			"username":  name,
 			"s3Enabled": config.Use.S3.Enable,
 		},

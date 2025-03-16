@@ -26,7 +26,7 @@ func router(app *fiber.App) {
 	})
 
 	// UI
-	app.Get("/*", static.New("ui", static.Config{
+	app.Use("/*", static.New("ui", static.Config{
 		Compress: true,
 		Next: func(ctx fiber.Ctx) bool {
 			return strings.HasPrefix(ctx.Path(), "/web")
