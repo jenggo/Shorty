@@ -25,7 +25,10 @@ type redis struct {
 
 var Redis, RedisAuth *redis
 
-const s3CachePrefix = "s3_exists:"
+const (
+	s3CachePrefix = "s3_exists:"
+	s3CredPrefix  = "s3_cred:"
+)
 
 func NewRedis(useDB ...int) (*redis, error) {
 	db := config.Use.Redis.DB.Main
@@ -57,7 +60,7 @@ func (r *redis) Close() {
 	}
 }
 
-func (r *redis) Set(ctx context.Context, key string, value interface{}, ttl time.Duration, checkFirst ...bool) error {
+func (r *redis) Set(ctx context.Context, key string, value any, ttl time.Duration, checkFirst ...bool) error {
 	if ttl < 1 {
 		ttl = 30 * time.Minute
 	}
@@ -87,6 +90,41 @@ func (r *redis) Set(ctx context.Context, key string, value interface{}, ttl time
 	return nil
 }
 
+// SetWithS3Credentials sets a URL with associated S3 credentials
+func (r *redis) SetWithS3Credentials(ctx context.Context, key string, value any, s3Creds types.S3Credentials, ttl time.Duration, checkFirst ...bool) error {
+	// First set the main URL
+	if err := r.Set(ctx, key, value, ttl, checkFirst...); err != nil {
+		return err
+	}
+
+	// Then store the credentials in a separate key
+	s3CredKey := s3CredPrefix + key
+	if err := r.client.Set(ctx, s3CredKey, utils.ToJSON(s3Creds), ttl).Err(); err != nil {
+		// If we fail to store credentials, clean up the main key
+		r.client.Del(ctx, key)
+		return err
+	}
+
+	return nil
+}
+
+// GetS3Credentials retrieves S3 credentials for a key if they exist
+func (r *redis) GetS3Credentials(ctx context.Context, key string) (types.S3Credentials, error) {
+	var creds types.S3Credentials
+
+	s3CredKey := s3CredPrefix + key
+	data, err := r.client.Get(ctx, s3CredKey).Bytes()
+	if err != nil {
+		return creds, err
+	}
+
+	if err := utils.FromJSON(data, &creds); err != nil {
+		return creds, err
+	}
+
+	return creds, nil
+}
+
 func (r *redis) Get(ctx context.Context, key string) (string, error) {
 	data, err := r.client.Get(ctx, key).Bytes()
 	if err == goredis.Nil {
@@ -100,7 +138,7 @@ func (r *redis) GetAll(ctx context.Context) (datas []types.Shorten, err error) {
 	iter := r.client.Scan(ctx, 0, "*", 0).Iterator()
 	for iter.Next(ctx) {
 		key := iter.Val()
-		if strings.HasPrefix(key, s3CachePrefix) {
+		if strings.HasPrefix(key, s3CachePrefix) || strings.HasPrefix(key, s3CredPrefix) {
 			continue
 		}
 
@@ -174,7 +212,9 @@ func getFile(input string) string {
 
 func (r *redis) Del(ctx context.Context, key string) error {
 	s3CacheKey := s3CachePrefix + key
+	s3CredKey := s3CredPrefix + key
 	_ = r.client.Del(ctx, s3CacheKey).Err()
+	_ = r.client.Del(ctx, s3CredKey).Err()
 	return r.client.Del(ctx, key).Err()
 }
 
@@ -207,8 +247,8 @@ func (r *redis) removeExpiredS3Objects() error {
 	iter := r.client.Scan(ctx, 0, "*", 0).Iterator()
 	for iter.Next(ctx) {
 		key := iter.Val()
-		// Skip s3_exists: keys in this pass
-		if strings.HasPrefix(key, s3CachePrefix) {
+		// Skip special prefix keys in this pass
+		if strings.HasPrefix(key, s3CachePrefix) || strings.HasPrefix(key, s3CredPrefix) {
 			continue
 		}
 
@@ -259,6 +299,7 @@ func (r *redis) removeExpiredS3Objects() error {
 					log.Error().Caller().Err(err).Str("file", filename).Msg("failed to delete S3 object")
 					continue
 				}
+
 				log.Info().Str("file", filename).Msg("removed expired S3 object")
 			}
 
@@ -266,6 +307,12 @@ func (r *redis) removeExpiredS3Objects() error {
 			if err := r.client.Del(ctx, iter.Val()).Err(); err != nil {
 				log.Error().Caller().Err(err).Msg("failed to delete Redis key")
 			}
+
+			// // Also delete any s3_cred: key for this shortened URL
+			// s3CredKey := s3CredPrefix + originalKey
+			// if err := r.client.Del(ctx, s3CredKey).Err(); err != nil && err != goredis.Nil {
+			// 	log.Error().Caller().Err(err).Msg("failed to delete S3 credentials key")
+			// }
 		}
 	}
 

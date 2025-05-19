@@ -96,7 +96,7 @@ func (f *FileUpload) uploadFile(ctx app.Context, file app.Value) {
 	var progressHandler, loadHandler, errorHandler app.Func
 
 	// Define progress handler
-	progressHandler = app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+	progressHandler = app.FuncOf(func(this app.Value, args []app.Value) any {
 		if len(args) > 0 && !args[0].IsUndefined() && !args[0].IsNull() {
 			if args[0].Get("lengthComputable").Bool() {
 				loaded := args[0].Get("loaded").Float()
@@ -113,7 +113,7 @@ func (f *FileUpload) uploadFile(ctx app.Context, file app.Value) {
 	})
 
 	// Define load handler
-	loadHandler = app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+	loadHandler = app.FuncOf(func(this app.Value, args []app.Value) any {
 		status := xhr.Get("status").Int()
 		if status == 200 {
 			ctx.Dispatch(func(ctx app.Context) {
@@ -140,7 +140,7 @@ func (f *FileUpload) uploadFile(ctx app.Context, file app.Value) {
 	})
 
 	// Define error handler
-	errorHandler = app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+	errorHandler = app.FuncOf(func(this app.Value, args []app.Value) any {
 		ctx.Dispatch(func(ctx app.Context) {
 			f.handleError(ctx, "Network error occurred during upload")
 		})

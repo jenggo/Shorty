@@ -5,7 +5,7 @@ import "github.com/maxence-charriere/go-app/v10/pkg/app"
 func Confirm(title string) bool {
 	result := make(chan bool)
 
-	app.Window().Get("Swal").Call("fire", map[string]interface{}{
+	app.Window().Get("Swal").Call("fire", map[string]any{
 		"title":              title,
 		"icon":               "warning",
 		"showCancelButton":   true,
@@ -13,7 +13,7 @@ func Confirm(title string) bool {
 		"cancelButtonText":   "Cancel",
 		"confirmButtonColor": "#3085d6",
 		"cancelButtonColor":  "#d33",
-	}).Call("then", app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+	}).Call("then", app.FuncOf(func(this app.Value, args []app.Value) any {
 		result <- args[0].Get("isConfirmed").Bool()
 		return nil
 	}))
@@ -24,14 +24,14 @@ func Confirm(title string) bool {
 func Prompt(title string, defaultValue string) string {
 	result := make(chan string)
 
-	app.Window().Get("Swal").Call("fire", map[string]interface{}{
+	app.Window().Get("Swal").Call("fire", map[string]any{
 		"title":              title,
 		"input":              "text",
 		"inputValue":         defaultValue,
 		"showCancelButton":   true,
 		"confirmButtonColor": "#3085d6",
 		"cancelButtonColor":  "#d33",
-	}).Call("then", app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+	}).Call("then", app.FuncOf(func(this app.Value, args []app.Value) any {
 		result <- ""
 		if args[0].Get("isConfirmed").Bool() {
 			result <- args[0].Get("value").String()
@@ -44,7 +44,7 @@ func Prompt(title string, defaultValue string) string {
 }
 
 func ShowToast(title string, message string, icon string) {
-	app.Window().Get("Swal").Call("fire", map[string]interface{}{
+	app.Window().Get("Swal").Call("fire", map[string]any{
 		"title":             title,
 		"text":              message,
 		"icon":              icon,

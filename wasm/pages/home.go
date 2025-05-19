@@ -97,7 +97,7 @@ func (h *Home) handleCreate(ctx app.Context, e app.Event) {
 	h.FormLoading = true
 
 	go func() {
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"url": h.NewURL,
 		}
 		if h.CustomName != "" {

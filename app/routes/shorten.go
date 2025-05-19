@@ -37,8 +37,24 @@ func Shorten(ctx fiber.Ctx) error {
 		body.Shorty = utils.HumanFriendlyEnglishString(8)
 	}
 
-	if err := pkg.Redis.Set(ctx.Context(), body.Shorty, body.Url, body.Expired, true); err != nil {
-		return err
+	// Check if S3 credentials are provided
+	if body.S3Key.Access != "" && body.S3Key.Secret != "" {
+		// Store URL with S3 credentials
+		if err := pkg.Redis.SetWithS3Credentials(
+			ctx.Context(), 
+			body.Shorty, 
+			body.Url, 
+			body.S3Key, 
+			body.Expired, 
+			true,
+		); err != nil {
+			return err
+		}
+	} else {
+		// Regular URL without S3 credentials
+		if err := pkg.Redis.Set(ctx.Context(), body.Shorty, body.Url, body.Expired, true); err != nil {
+			return err
+		}
 	}
 
 	return ctx.JSON(types.Response{

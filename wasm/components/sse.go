@@ -59,7 +59,7 @@ func (h *SSEHandler) connect(ctx app.Context) {
 	h.eventSource = app.Window().Get("EventSource").New(h.url, eventSourceOptions)
 
 	// Handle connection open
-	h.eventSource.Call("addEventListener", "open", app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+	h.eventSource.Call("addEventListener", "open", app.FuncOf(func(this app.Value, args []app.Value) any {
 		h.mu.Lock()
 		h.isConnected = true
 		h.retryAttempts = 0
@@ -70,7 +70,7 @@ func (h *SSEHandler) connect(ctx app.Context) {
 	}))
 
 	// Handle errors
-	h.eventSource.Call("addEventListener", "error", app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+	h.eventSource.Call("addEventListener", "error", app.FuncOf(func(this app.Value, args []app.Value) any {
 		app.Log("SSE connection error")
 		h.mu.Lock()
 		h.isConnected = false
@@ -118,7 +118,7 @@ func (h *SSEHandler) attachEventListener(event string, callback func(string)) {
 		return
 	}
 
-	h.eventSource.Call("addEventListener", event, app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+	h.eventSource.Call("addEventListener", event, app.FuncOf(func(this app.Value, args []app.Value) any {
 		data := args[0].Get("data").String()
 		callback(data)
 		return nil

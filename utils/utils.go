@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"path/filepath"
 	"strings"
 
@@ -48,4 +49,23 @@ func GenerateState() string {
 		return ""
 	}
 	return base64.StdEncoding.EncodeToString(b)
+}
+
+// ToJSON converts a struct to JSON bytes
+func ToJSON(v any) []byte {
+	data, err := json.Marshal(v)
+	if err != nil {
+		log.Error().Caller().Err(err).Send()
+		return nil
+	}
+	return data
+}
+
+// FromJSON unmarshals JSON data into a struct
+func FromJSON(data []byte, v any) error {
+	if err := json.Unmarshal(data, v); err != nil {
+		log.Error().Caller().Err(err).Send()
+		return err
+	}
+	return nil
 }

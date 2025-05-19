@@ -75,7 +75,7 @@ func Upload(ctx fiber.Ctx) error {
 	shorty := utils.HumanFriendlyEnglishString(8)
 	if err := pkg.Redis.Set(ctx.Context(), shorty, url.String(), config.Use.S3.Expired, true); err != nil {
 		log.Error().Caller().Err(err).Send()
-		return fmt.Errorf("Failed to set redis key: %v", err)
+		return fmt.Errorf("failed to set redis key: %v", err)
 	}
 
 	// Aggresively freeing memory
