@@ -48,6 +48,12 @@ func RunServer() (app *fiber.App, err error) {
 		app.Use(pprof.New(pprof.Config{Prefix: config.Use.App.PPROF}))
 	}
 
+	// storage := redis.New(redis.Config{
+	// 	Host:     config.Use.Redis.Host,
+	// 	Password: config.Use.Redis.Password,
+	// 	Database: config.Use.Redis.DB.Auth + 1,
+	// })
+
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{config.Use.App.BaseURL},
 		AllowHeaders:     []string{"Origin, Content-Type, Accept, Authorization, Cache-Control"},
@@ -58,6 +64,25 @@ func RunServer() (app *fiber.App, err error) {
 	app.Use(helmet.New())
 	app.Use(earlydata.New())
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
+	// app.Use(limiter.New(limiter.Config{
+	// 	Expiration:             5 * time.Minute,
+	// 	LimiterMiddleware:      limiter.SlidingWindow{},
+	// 	SkipSuccessfulRequests: true,
+	// 	Storage:                storage,
+	// 	Next: func(c fiber.Ctx) bool {
+	// 		switch c.Path() {
+	// 		case "/login":
+	// 			return true
+	// 		case "/web":
+	// 			return true
+	// 		case "/_app":
+	// 			return true
+	// 		default:
+	// 			return false
+	// 		}
+	// 	},
+	// }))
+
 	router(app)
 
 	go func() {
