@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"wasm/types"
 
-	"github.com/goccy/go-json"
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
+	"github.com/sugawarayuuta/sonnet"
 )
 
 type FileUpload struct {
@@ -65,7 +65,7 @@ func (f *FileUpload) checkAndUploadFile(ctx app.Context, file app.Value) {
 	defer resp.Body.Close()
 
 	var result types.APIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := sonnet.NewDecoder(resp.Body).Decode(&result); err != nil {
 		f.handleError(ctx, "Failed to parse response: "+err.Error())
 		return
 	}

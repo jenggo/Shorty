@@ -6,7 +6,6 @@ import (
 	"shorty/types"
 	"time"
 
-	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/earlydata"
@@ -17,13 +16,14 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/template/html/v2"
 	"github.com/rs/zerolog/log"
+	"github.com/sugawarayuuta/sonnet"
 )
 
 func RunServer() (app *fiber.App, err error) {
 	appCfg := fiber.Config{
 		AppName:       config.AppName,
-		JSONEncoder:   json.Marshal,
-		JSONDecoder:   json.Unmarshal,
+		JSONEncoder:   sonnet.Marshal,
+		JSONDecoder:   sonnet.Unmarshal,
 		ErrorHandler:  errHandler,
 		ProxyHeader:   "Cf-Connecting-Ip",
 		Views:         html.New("ui", ".html"),

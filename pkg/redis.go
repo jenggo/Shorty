@@ -61,9 +61,9 @@ func (r *redis) Close() {
 }
 
 func (r *redis) Set(ctx context.Context, key string, value any, ttl time.Duration, checkFirst ...bool) error {
-	if ttl < 1 {
-		ttl = 30 * time.Minute
-	}
+	// if ttl < 1 {
+	// 	ttl = 30 * time.Minute
+	// }
 
 	valueStr := fmt.Sprint(value)
 

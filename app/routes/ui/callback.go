@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/client"
 	"github.com/rs/zerolog/log"
+	"github.com/sugawarayuuta/sonnet"
 )
 
 func Callback(ctx fiber.Ctx) error {
@@ -57,7 +57,7 @@ func Callback(ctx fiber.Ctx) error {
 	}
 
 	var user oauthUserResponse
-	if err := json.Unmarshal(resp.Body(), &user); err != nil {
+	if err := sonnet.Unmarshal(resp.Body(), &user); err != nil {
 		log.Error().Err(err).Msg("failed to decode user info")
 		return ctx.Redirect().To(basePath + "/login?error=Failed to process user information")
 	}

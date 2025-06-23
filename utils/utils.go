@@ -3,13 +3,13 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"path/filepath"
 	"strings"
 
 	"github.com/gofiber/storage/minio"
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog/log"
+	"github.com/sugawarayuuta/sonnet"
 )
 
 var Storage *minio.Storage
@@ -53,7 +53,7 @@ func GenerateState() string {
 
 // ToJSON converts a struct to JSON bytes
 func ToJSON(v any) []byte {
-	data, err := json.Marshal(v)
+	data, err := sonnet.Marshal(v)
 	if err != nil {
 		log.Error().Caller().Err(err).Send()
 		return nil
@@ -63,7 +63,7 @@ func ToJSON(v any) []byte {
 
 // FromJSON unmarshals JSON data into a struct
 func FromJSON(data []byte, v any) error {
-	if err := json.Unmarshal(data, v); err != nil {
+	if err := sonnet.Unmarshal(data, v); err != nil {
 		log.Error().Caller().Err(err).Send()
 		return err
 	}

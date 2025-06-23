@@ -4,7 +4,6 @@ go 1.24.1
 
 require (
 	github.com/archdx/zerolog-sentry v1.8.5
-	github.com/goccy/go-json v0.10.5
 	github.com/gofiber/fiber/v3 v3.0.0-beta.4
 	github.com/gofiber/storage/minio v0.3.0
 	github.com/gofiber/storage/redis/v3 v3.2.0
@@ -14,6 +13,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.94
 	github.com/redis/go-redis/v9 v9.10.0
 	github.com/rs/zerolog v1.34.0
+	github.com/sugawarayuuta/sonnet v0.0.0-20231004000330-239c7b6e4ce8
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.39.0
 	golang.org/x/oauth2 v0.30.0
@@ -29,10 +29,11 @@ require (
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/getsentry/sentry-go v0.33.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gofiber/schema v1.5.0 // indirect
 	github.com/gofiber/template v1.8.3 // indirect
 	github.com/gofiber/utils v1.1.0 // indirect
-	github.com/gofiber/utils/v2 v2.0.0-beta.8 // indirect
+	github.com/gofiber/utils/v2 v2.0.0-beta.9 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect

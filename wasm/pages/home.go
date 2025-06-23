@@ -8,8 +8,8 @@ import (
 	"wasm/components"
 	"wasm/types"
 
-	"github.com/goccy/go-json"
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
+	"github.com/sugawarayuuta/sonnet"
 )
 
 type Home struct {
@@ -60,7 +60,7 @@ func (h *Home) initializeSSE(ctx app.Context) {
 	// Handle data updates
 	h.SSE.AddEventListener("message", func(data string) {
 		h.Loading = false
-		if err := json.Unmarshal([]byte(data), &h.Data); err != nil {
+		if err := sonnet.Unmarshal([]byte(data), &h.Data); err != nil {
 			h.Error = "Failed to parse data: " + err.Error()
 		}
 		ctx.Dispatch(func(ctx app.Context) {
@@ -104,7 +104,7 @@ func (h *Home) handleCreate(ctx app.Context, e app.Event) {
 			payload["shorty"] = h.CustomName
 		}
 
-		jsonData, _ := json.Marshal(payload)
+		jsonData, _ := sonnet.Marshal(payload)
 
 		req, _ := http.NewRequest("POST", types.API_BASE_URL+"/shorty", strings.NewReader(string(jsonData)))
 		req.Header.Set("Content-Type", "application/json")
@@ -117,7 +117,7 @@ func (h *Home) handleCreate(ctx app.Context, e app.Event) {
 		defer resp.Body.Close()
 
 		var result types.APIResponse
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		if err := sonnet.NewDecoder(resp.Body).Decode(&result); err != nil {
 			h.handleError(ctx, "Failed to parse response")
 			return
 		}
@@ -154,7 +154,7 @@ func (h *Home) handleDelete(ctx app.Context, shorty string) {
 		defer resp.Body.Close()
 
 		var result types.APIResponse
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		if err := sonnet.NewDecoder(resp.Body).Decode(&result); err != nil {
 			h.handleError(ctx, "Failed to parse response")
 			return
 		}
@@ -184,7 +184,7 @@ func (h *Home) handleRename(ctx app.Context, oldName string) {
 		defer resp.Body.Close()
 
 		var result types.APIResponse
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		if err := sonnet.NewDecoder(resp.Body).Decode(&result); err != nil {
 			h.handleError(ctx, "Failed to parse response")
 			return
 		}
