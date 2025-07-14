@@ -8,9 +8,9 @@ import (
 	"shorty/types"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
-	"github.com/sugawarayuuta/sonnet"
 )
 
 func SSE(ctx fiber.Ctx) error {
@@ -54,7 +54,7 @@ func SSE(ctx fiber.Ctx) error {
 					continue
 				}
 
-				jsonData, err := sonnet.Marshal(lists)
+				jsonData, err := json.Marshal(lists)
 				if err != nil {
 					log.Error().Caller().Err(err).Msg("failed to marshal data")
 					continue

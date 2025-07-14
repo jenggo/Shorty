@@ -25,7 +25,7 @@ func Shorten(ctx fiber.Ctx) error {
 	cc := client.New()
 	testUrl, err := cc.Head(body.Url)
 	if err != nil {
-		return fmt.Errorf("error when reach %s: %v", body.Url, err)
+		return fmt.Errorf("error when reach %s: %w", body.Url, err)
 	}
 
 	statusCode := testUrl.StatusCode()
@@ -41,11 +41,11 @@ func Shorten(ctx fiber.Ctx) error {
 	if body.S3Key.Access != "" && body.S3Key.Secret != "" {
 		// Store URL with S3 credentials
 		if err := pkg.Redis.SetWithS3Credentials(
-			ctx.Context(), 
-			body.Shorty, 
-			body.Url, 
-			body.S3Key, 
-			body.Expired, 
+			ctx.Context(),
+			body.Shorty,
+			body.Url,
+			body.S3Key,
+			body.Expired,
 			true,
 		); err != nil {
 			return err

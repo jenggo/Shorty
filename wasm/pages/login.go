@@ -5,8 +5,8 @@ import (
 	"wasm/components"
 	"wasm/types"
 
+	"github.com/goccy/go-json"
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
-	"github.com/sugawarayuuta/sonnet"
 )
 
 type Login struct {
@@ -91,7 +91,7 @@ func (l *Login) HandleLogin(ctx app.Context, e app.Event) {
 			Error   bool   `json:"error"`
 			Message string `json:"message"`
 		}
-		if err := sonnet.NewDecoder(resp.Body).Decode(&result); err != nil {
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			l.handleError(ctx, "Invalid response from server")
 			return
 		}

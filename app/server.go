@@ -6,6 +6,7 @@ import (
 	"shorty/types"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/earlydata"
@@ -16,14 +17,13 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/template/html/v2"
 	"github.com/rs/zerolog/log"
-	"github.com/sugawarayuuta/sonnet"
 )
 
 func RunServer() (app *fiber.App, err error) {
 	appCfg := fiber.Config{
 		AppName:       config.AppName,
-		JSONEncoder:   sonnet.Marshal,
-		JSONDecoder:   sonnet.Unmarshal,
+		JSONEncoder:   json.Marshal,
+		JSONDecoder:   json.Unmarshal,
 		ErrorHandler:  errHandler,
 		ProxyHeader:   "Cf-Connecting-Ip",
 		Views:         html.New("ui", ".html"),
@@ -108,7 +108,7 @@ func errHandler(c fiber.Ctx, err error) error {
 	method := c.Method()
 	path := c.Path()
 
-	if ua != "" && ip != "" && code != fiber.StatusNotFound && code != fiber.StatusMethodNotAllowed && err != keyauth.ErrMissingOrMalformedAPIKey {
+	if ua != "" && ip != "" && code != fiber.StatusNotFound && code != fiber.StatusMethodNotAllowed && !errors.Is(err, keyauth.ErrMissingOrMalformedAPIKey) {
 		log.Error().Str("UserAgent", ua).Str("IP", ip).Str("Method", method).Str("Path", path).Err(err).Send()
 	}
 

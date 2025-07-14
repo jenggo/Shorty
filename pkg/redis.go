@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mime"
 	"net"
@@ -127,7 +128,7 @@ func (r *redis) GetS3Credentials(ctx context.Context, key string) (types.S3Crede
 
 func (r *redis) Get(ctx context.Context, key string) (string, error) {
 	data, err := r.client.Get(ctx, key).Bytes()
-	if err == goredis.Nil {
+	if errors.Is(err, goredis.Nil) {
 		err = fmt.Errorf("not found %s", key)
 	}
 
@@ -146,7 +147,7 @@ func (r *redis) GetAll(ctx context.Context) (datas []types.Shorten, err error) {
 		s3CacheKey := s3CachePrefix + key
 
 		file, err := r.client.Get(ctx, s3CacheKey).Result()
-		if err == goredis.Nil {
+		if errors.Is(err, goredis.Nil) {
 			file = checkIsS3File(url)
 			ttl := 20 * time.Minute
 			if file != "" {

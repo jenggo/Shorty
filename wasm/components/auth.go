@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"wasm/types"
 
+	"github.com/goccy/go-json"
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
-	"github.com/sugawarayuuta/sonnet"
 )
 
 type AuthStoreData struct {
@@ -61,7 +61,7 @@ func (a *AuthStore) CheckSession() error {
 		} `json:"data"`
 	}
 
-	if err := sonnet.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return err
 	}
 

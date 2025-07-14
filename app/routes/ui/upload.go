@@ -60,7 +60,7 @@ func Upload(ctx fiber.Ctx) error {
 	default:
 		if err := ctx.SaveFileToStorage(file, slugifiedName, utils.Storage); err != nil {
 			log.Error().Caller().Err(err).Send()
-			return fmt.Errorf("failed save file to storage: %v", err)
+			return fmt.Errorf("failed save file to storage: %w", err)
 		}
 	}
 
@@ -69,13 +69,13 @@ func Upload(ctx fiber.Ctx) error {
 	url, err := utils.Storage.Conn().PresignedGetObject(ctx.Context(), config.Use.S3.Bucket, slugifiedName, config.Use.S3.Expired, reqParams)
 	if err != nil {
 		log.Error().Caller().Err(err).Send()
-		return fmt.Errorf("failed to get presigned url: %v", err)
+		return fmt.Errorf("failed to get presigned url: %w", err)
 	}
 
 	shorty := utils.HumanFriendlyEnglishString(8)
 	if err := pkg.Redis.Set(ctx.Context(), shorty, url.String(), config.Use.S3.Expired, true); err != nil {
 		log.Error().Caller().Err(err).Send()
-		return fmt.Errorf("failed to set redis key: %v", err)
+		return fmt.Errorf("failed to set redis key: %w", err)
 	}
 
 	// Aggresively freeing memory
