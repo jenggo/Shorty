@@ -4,10 +4,11 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"syscall"
+
 	"shorty/app"
 	"shorty/config"
 	"shorty/pkg"
-	"syscall"
 
 	zlogsentry "github.com/archdx/zerolog-sentry"
 	"github.com/ilyakaznacheev/cleanenv"
@@ -68,7 +69,6 @@ func main() {
 	}
 
 	defer func() {
-
 		// Shutdown server
 		if err := server.Shutdown(); err != nil {
 			log.Error().Err(err).Send()

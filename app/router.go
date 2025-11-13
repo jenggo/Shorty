@@ -1,10 +1,11 @@
 package app
 
 import (
+	"strings"
+
 	"shorty/app/routes"
 	"shorty/app/routes/ui"
 	"shorty/config"
-	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
@@ -35,6 +36,8 @@ func router(app *fiber.App) {
 
 	app.Get("/auth/gitlab", ui.OauthLogin)
 	app.Get("/auth/gitlab/callback", ui.Callback)
+	app.Get("/auth/config", ui.GetAuthConfig)
+	app.Post("/auth/login", ui.LoginUserPass)
 	app.Get("/auth/check", ui.CheckSession)
 	app.Get("/login", func(ctx fiber.Ctx) error { return ctx.Render("login", nil) })
 	app.Get("/logout", ui.Logout)

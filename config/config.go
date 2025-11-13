@@ -38,6 +38,7 @@ type config struct {
 	} `yaml:"redis"`
 
 	Oauth struct {
+		Enable       bool   `yaml:"enable" env:"OAUTH_ENABLE" env-default:"false"`
 		ClientID     string `yaml:"client_id" env:"OAUTH_CLIENT_ID"`
 		ClientSecret string `yaml:"client_secret" env:"OAUTH_CLIENT_SECRET"`
 		// RedirectURI  string `yaml:"redirect_uri" env:"OAUTH_REDIRECT_URI"`

@@ -17,6 +17,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9/maintnotifications"
 	"github.com/rs/zerolog/log"
 )
 
@@ -42,6 +43,9 @@ func NewRedis(useDB ...int) (*redis, error) {
 		Addr:     addr,
 		Password: config.Use.Redis.Password,
 		DB:       db,
+		MaintNotificationsConfig: &maintnotifications.Config{
+			Mode: maintnotifications.ModeDisabled,
+		},
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())

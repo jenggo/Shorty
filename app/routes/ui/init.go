@@ -1,11 +1,12 @@
 package ui
 
 import (
-	"shorty/config"
-	"shorty/utils"
 	"strconv"
 	"strings"
 	"time"
+
+	"shorty/config"
+	"shorty/utils"
 
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/storage/minio"
@@ -65,17 +66,40 @@ func InitStore() {
 		CookieHTTPOnly:  true,
 	})
 
-	utils.Storage = minio.New(minio.Config{
-		Endpoint: config.Use.S3.Endpoint,
-		Bucket:   config.Use.S3.Bucket,
-		Secure:   true,
-		Credentials: minio.Credentials{
-			AccessKeyID:     config.Use.S3.Key.Access,
-			SecretAccessKey: config.Use.S3.Key.Secret,
-		},
-	})
+	if config.Use.S3.Enable {
+		utils.Storage = minio.New(minio.Config{
+			Endpoint: config.Use.S3.Endpoint,
+			Bucket:   config.Use.S3.Bucket,
+			Secure:   true,
+			Credentials: minio.Credentials{
+				AccessKeyID:     config.Use.S3.Key.Access,
+				SecretAccessKey: config.Use.S3.Key.Secret,
+			},
+		})
 
-	if err := utils.Storage.CheckBucket(); err != nil {
-		log.Fatal().Err(err).Send()
+		if err := utils.Storage.CheckBucket(); err != nil {
+			log.Fatal().Err(err).Send()
+		}
+	}
+}
+
+// IsOAuthConfigured checks if OAuth is properly configured
+func IsOAuthConfigured() bool {
+	return config.Use.Oauth.Enable &&
+		config.Use.Oauth.ClientID != "" &&
+		config.Use.Oauth.ClientSecret != "" &&
+		config.Use.Oauth.BaseURL != ""
+}
+
+// IsUserPassConfigured checks if username/password auth is configured
+func IsUserPassConfigured() bool {
+	return config.Use.App.Auth.User != "" && config.Use.App.Auth.Password != ""
+}
+
+// GetAuthMethods returns the configured authentication methods
+func GetAuthMethods() map[string]bool {
+	return map[string]bool{
+		"oauth":    IsOAuthConfigured(),
+		"userpass": IsUserPassConfigured(),
 	}
 }

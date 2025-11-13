@@ -7,8 +7,31 @@
 
 	const { children } = $props();
 
+	async function checkAuthConfig() {
+		try {
+			const response = await fetch(`${API_BASE_URL}/auth/config`);
+			const data = await response.json();
+
+			// If no auth methods are configured, allow access without login
+			if (!data.data?.oauth && !data.data?.userpass) {
+				auth.login('Guest', data.data?.s3Enabled || false);
+				return true;
+			}
+			return false;
+		} catch (err) {
+			console.error('Failed to check auth config:', err);
+			return false;
+		}
+	}
+
 	async function checkSession() {
 		try {
+			// First check if any auth is required
+			const noAuthRequired = await checkAuthConfig();
+			if (noAuthRequired) {
+				return;
+			}
+
 			const response = await fetch(`${API_BASE_URL}/auth/check`, {
 				credentials: 'include'
 			});

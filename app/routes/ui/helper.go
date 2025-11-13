@@ -2,6 +2,7 @@ package ui
 
 import (
 	"errors"
+
 	"shorty/config"
 	"shorty/types"
 
@@ -28,6 +29,17 @@ func validateSession(ctx fiber.Ctx, returnName ...bool) (*string, error) {
 }
 
 func CheckSession(ctx fiber.Ctx) error {
+	// If no authentication is configured, allow access
+	if !IsOAuthConfigured() && !IsUserPassConfigured() {
+		return ctx.JSON(types.Response{
+			Error: false,
+			Data: fiber.Map{
+				"username":  "Guest",
+				"s3Enabled": config.Use.S3.Enable,
+			},
+		})
+	}
+
 	name, err := validateSession(ctx, true)
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
