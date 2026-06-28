@@ -5,8 +5,7 @@ import (
 )
 
 const (
-	AppName    string = "Shorty"
-	AppVersion string = "v0.0.8"
+	AppName string = "Shorty"
 )
 
 var Use config

@@ -26,8 +26,8 @@ func Delete(ctx fiber.Ctx) error {
 
 	if config.Use.S3.Enable {
 		prefix := fmt.Sprintf("https://%s/%s/", config.Use.S3.Endpoint, config.Use.S3.Bucket)
-		if strings.HasPrefix(key, prefix) {
-			getObjectName := strings.TrimPrefix(key, prefix)
+		if after, ok := strings.CutPrefix(key, prefix); ok {
+			getObjectName := after
 			objectName := strings.SplitN(getObjectName, "?", 2)[0]
 
 			if err := utils.Storage.Delete(objectName); err != nil {

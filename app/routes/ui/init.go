@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"strconv"
 	"strings"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/storage/minio"
-	"github.com/gofiber/storage/redis/v3"
+	"github.com/gofiber/storage/valkey"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 )
@@ -22,9 +21,9 @@ var (
 )
 
 type oauthUserResponse struct {
-	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+	ID       int    `json:"id"`
 	External bool   `json:"external"`
 }
 
@@ -51,12 +50,11 @@ func getOAuthConfig(path string) *oauth2.Config {
 }
 
 func InitStore() {
-	redisPort, _ := strconv.Atoi(config.Use.Redis.Port)
-	redisStore := redis.New(redis.Config{
-		Host:     config.Use.Redis.Host,
-		Port:     redisPort,
-		Password: config.Use.Redis.Password,
-		Database: config.Use.Redis.DB.Auth + 1,
+	valkeyAddrs := []string{config.Use.Redis.Host + ":" + config.Use.Redis.Port}
+	redisStore := valkey.New(valkey.Config{
+		InitAddress: valkeyAddrs,
+		Password:    config.Use.Redis.Password,
+		SelectDB:    config.Use.Redis.DB.Auth + 1,
 	})
 
 	sessionStore = session.NewStore(session.Config{

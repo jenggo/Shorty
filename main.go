@@ -10,7 +10,6 @@ import (
 	"shorty/config"
 	"shorty/pkg"
 
-	zlogsentry "github.com/archdx/zerolog-sentry"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -27,21 +26,6 @@ func main() {
 	var writeLog io.Writer = zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: "[Mon] [2006-01-02] [15:04:05]",
-	}
-
-	if config.Use.App.Sentry != "" {
-		host, _ := os.Hostname()
-		w, err := zlogsentry.New(
-			config.Use.App.Sentry,
-			zlogsentry.WithRelease(config.AppVersion),
-			zlogsentry.WithServerName(host),
-			zlogsentry.WithSampleRate(1.0),
-		)
-		if err != nil {
-			log.Fatal().Err(err).Msg("error initializing Sentry client")
-		}
-
-		writeLog = zerolog.MultiLevelWriter(w, writeLog)
 	}
 
 	log.Logger = zerolog.New(writeLog).With().Timestamp().Logger()

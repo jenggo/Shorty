@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"mime/multipart"
 	"net/url"
 	"runtime"
 	"shorty/config"
@@ -12,6 +13,26 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
 )
+
+func saveFileAndGetPresignedURL(ctx fiber.Ctx, file *multipart.FileHeader, slugifiedName string) (string, error) {
+	select {
+	case <-ctx.Context().Done():
+		return "", fmt.Errorf("upload cancelled")
+	default:
+		if err := ctx.SaveFileToStorage(file, slugifiedName, utils.Storage); err != nil {
+			return "", fmt.Errorf("failed save file to storage: %w", err)
+		}
+	}
+
+	reqParams := make(url.Values)
+	reqParams.Set("response-content-disposition", "inline")
+	presignedURL, err := utils.Storage.Conn().PresignedGetObject(ctx.Context(), config.Use.S3.Bucket, slugifiedName, config.Use.S3.Expired, reqParams)
+	if err != nil {
+		return "", fmt.Errorf("failed to get presigned url: %w", err)
+	}
+
+	return presignedURL.String(), nil
+}
 
 func Upload(ctx fiber.Ctx) error {
 	if _, err := validateSession(ctx); err != nil {
@@ -28,15 +49,12 @@ func Upload(ctx fiber.Ctx) error {
 	go func() {
 		select {
 		case <-ctx.Context().Done():
-			// Client disconnected/cancelled - clean up
 			log.Info().Msg("upload cancelled")
-			// Clean up any partial uploads
 			slugifiedName := utils.SlugifyFilename(ctx.FormValue("file"))
 			if err := utils.Storage.Delete(slugifiedName); err != nil {
 				log.Warn().Err(err).Msg("failed to cleanup cancelled upload")
 			}
 		case <-done:
-			// Normal completion - do nothing
 			return
 		}
 	}()
@@ -51,34 +69,18 @@ func Upload(ctx fiber.Ctx) error {
 	}
 
 	slugifiedName := utils.SlugifyFilename(file.Filename)
-	select {
-	case <-ctx.Context().Done():
-		return ctx.Status(fiber.StatusRequestTimeout).JSON(types.Response{
-			Error:   true,
-			Message: "Upload cancelled",
-		})
-	default:
-		if err := ctx.SaveFileToStorage(file, slugifiedName, utils.Storage); err != nil {
-			log.Error().Caller().Err(err).Send()
-			return fmt.Errorf("failed save file to storage: %w", err)
-		}
-	}
-
-	reqParams := make(url.Values)
-	reqParams.Set("response-content-disposition", "inline")
-	url, err := utils.Storage.Conn().PresignedGetObject(ctx.Context(), config.Use.S3.Bucket, slugifiedName, config.Use.S3.Expired, reqParams)
+	presignedURL, err := saveFileAndGetPresignedURL(ctx, file, slugifiedName)
 	if err != nil {
 		log.Error().Caller().Err(err).Send()
-		return fmt.Errorf("failed to get presigned url: %w", err)
+		return err
 	}
 
 	shorty := utils.HumanFriendlyEnglishString(8)
-	if err := pkg.Redis.Set(ctx.Context(), shorty, url.String(), config.Use.S3.Expired, true); err != nil {
+	if err := pkg.Redis.Set(ctx.Context(), shorty, presignedURL, config.Use.S3.Expired, true); err != nil {
 		log.Error().Caller().Err(err).Send()
 		return fmt.Errorf("failed to set redis key: %w", err)
 	}
 
-	// Aggresively freeing memory
 	runtime.GC()
 
 	return ctx.JSON(types.Response{

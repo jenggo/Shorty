@@ -2,9 +2,11 @@ package app
 
 import (
 	"errors"
-	"shorty/config"
-	"shorty/types"
 	"time"
+
+	"shorty/config"
+	"shorty/internal/version"
+	"shorty/types"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
@@ -12,7 +14,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/earlydata"
 	"github.com/gofiber/fiber/v3/middleware/favicon"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
-	"github.com/gofiber/fiber/v3/middleware/keyauth"
 	"github.com/gofiber/fiber/v3/middleware/pprof"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/template/html/v2"
@@ -86,7 +87,7 @@ func RunServer() (app *fiber.App, err error) {
 	router(app)
 
 	go func() {
-		log.Log().Msgf("» %s %s listen: %s", config.AppName, config.AppVersion, config.Use.App.Listen)
+		log.Log().Msgf("» %s %s listen: %s", config.AppName, version.String(), config.Use.App.Listen)
 
 		if err := app.Listen(config.Use.App.Listen, fiber.ListenConfig{DisableStartupMessage: true}); err != nil {
 			log.Error().Caller().Err(err).Send()
@@ -108,7 +109,8 @@ func errHandler(c fiber.Ctx, err error) error {
 	method := c.Method()
 	path := c.Path()
 
-	if ua != "" && ip != "" && code != fiber.StatusNotFound && code != fiber.StatusMethodNotAllowed && !errors.Is(err, keyauth.ErrMissingOrMalformedAPIKey) {
+	// if ua != "" && ip != "" && code != fiber.StatusNotFound && code != fiber.StatusMethodNotAllowed && !errors.Is(err, keyauth.ErrMissingOrMalformedAPIKey) {
+	if ua != "" && ip != "" && code != fiber.StatusNotFound && code != fiber.StatusMethodNotAllowed {
 		log.Error().Str("UserAgent", ua).Str("IP", ip).Str("Method", method).Str("Path", path).Err(err).Send()
 	}
 

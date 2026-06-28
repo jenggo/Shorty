@@ -135,7 +135,7 @@ func HumanFriendlyEnglishString(length int) string {
 	vowelOffset := random.IntN(2)
 	vowelDistribution := 2
 	b := make([]byte, length)
-	for i := 0; i < length; i++ {
+	for i := range length {
 	again:
 		switch {
 		case (i+vowelOffset)%vowelDistribution == 0:

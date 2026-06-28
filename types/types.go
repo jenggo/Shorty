@@ -3,9 +3,9 @@ package types
 import "time"
 
 type Response struct {
-	Error   bool   `json:"error"`
-	Message string `json:"message,omitempty"`
 	Data    any    `json:"data,omitempty"`
+	Message string `json:"message,omitempty"`
+	Error   bool   `json:"error"`
 }
 
 type S3Credentials struct {
@@ -14,9 +14,9 @@ type S3Credentials struct {
 }
 
 type Shorten struct {
+	S3Key   S3Credentials `json:"s3_credentials,omitzero"`
 	Url     string        `json:"url"`
 	File    string        `json:"file,omitempty"`
 	Shorty  string        `json:"shorty,omitempty"`
 	Expired time.Duration `json:"expired,omitempty"`
-	S3Key   S3Credentials `json:"s3_credentials,omitzero"`
 }

@@ -12,6 +12,30 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func fetchOAuthUser(accessToken string) (oauthUserResponse, error) {
+	cc := client.New()
+	cc.SetTimeout(10 * time.Second)
+	resp, err := cc.Get(fmt.Sprintf("%s/api/v4/user", config.Use.Oauth.BaseURL), client.Config{
+		Header: map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+		},
+	})
+	if err != nil {
+		return oauthUserResponse{}, fmt.Errorf("failed to fetch user information: %w", err)
+	}
+
+	if resp.StatusCode() != fiber.StatusOK {
+		return oauthUserResponse{}, fmt.Errorf("failed to authenticate with GitLab: invalid response (status %d)", resp.StatusCode())
+	}
+
+	var user oauthUserResponse
+	if err := json.Unmarshal(resp.Body(), &user); err != nil {
+		return oauthUserResponse{}, fmt.Errorf("failed to decode user info: %w", err)
+	}
+
+	return user, nil
+}
+
 func Callback(ctx fiber.Ctx) error {
 	basePath := ""
 	routePath := ctx.Route().Path
@@ -39,38 +63,17 @@ func Callback(ctx fiber.Ctx) error {
 		return ctx.Redirect().To(basePath + "/login?error=Failed to authenticate with GitLab")
 	}
 
-	cc := client.New()
-	cc.SetTimeout(10 * time.Second)
-	resp, err := cc.Get(fmt.Sprintf("%s/api/v4/user", config.Use.Oauth.BaseURL), client.Config{
-		Header: map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", token.AccessToken),
-		},
-	})
+	user, err := fetchOAuthUser(token.AccessToken)
 	if err != nil {
 		log.Error().Err(err).Send()
-		return ctx.Redirect().To(basePath + "/login?error=Failed to fetch user information")
+		return ctx.Redirect().To(basePath + "/login?error=" + err.Error())
 	}
 
-	if resp.StatusCode() != fiber.StatusOK {
-		log.Error().Caller().Int("status code", resp.StatusCode()).Msg("Failed to authenticate user")
-		return ctx.Redirect().To(basePath + "/login?error=Failed to authenticate with GitLab: invalid response")
-	}
-
-	var user oauthUserResponse
-	if err := json.Unmarshal(resp.Body(), &user); err != nil {
-		log.Error().Err(err).Msg("failed to decode user info")
-		return ctx.Redirect().To(basePath + "/login?error=Failed to process user information")
-	}
-
-	// Check if user is external
 	if user.External {
-		log.Warn().
-			Str("username", user.Username).
-			Msg("external user attempted to login")
+		log.Warn().Str("username", user.Username).Msg("external user attempted to login")
 		return ctx.Redirect().To(basePath + "/login?error=External users are not allowed to login")
 	}
 
-	// Set session
 	sess.Set("name", user.Username)
 	if err := sess.Save(); err != nil {
 		log.Error().Err(err).Msg("failed to save session")
