@@ -32,9 +32,7 @@ func (l *Logout) OnMount(ctx app.Context) {
 }
 
 func (l *Logout) Render() app.UI {
-	return app.Div().
-		Class("flex min-h-screen items-center justify-center").
-		Body(
-			app.Text("Logging out..."),
-		)
+	return app.Div().Class("flex min-h-screen items-center justify-center").Body(
+		app.Text("Logging out..."),
+	)
 }

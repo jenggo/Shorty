@@ -1,12 +1,8 @@
 package config
 
-import (
-	"time"
-)
+import "time"
 
-const (
-	AppName string = "Shorty"
-)
+const AppName string = "Shorty"
 
 var Use config
 

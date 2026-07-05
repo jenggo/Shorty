@@ -230,289 +230,204 @@ func (h *Home) formatExpiry(duration time.Duration) string {
 func (h *Home) Render() app.UI {
 	return app.Div().Body(
 		// Navigation Bar
-		app.Nav().
-			Class("bg-gray-800 p-4").
-			Body(
-				app.Div().
-					Class("container mx-auto flex items-center justify-between").
-					Body(
-						app.H1().
-							Class("text-xl font-bold text-white").
-							Text("Hello "+h.Auth.Data.Username),
-						app.Div().
-							Class("flex gap-4").
-							Body(
-								app.Button().
-									Class("rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700").
-									Text(func() string {
-										if h.ShowCreateForm {
-											return "Close"
-										}
-										return "Create New"
-									}()).
-									OnClick(func(ctx app.Context, e app.Event) {
-										h.ShowCreateForm = !h.ShowCreateForm
-										ctx.Update()
-									}),
-								app.If(h.Auth.Data.S3Enabled,
-									func() app.UI {
-										return app.Button().
-											Class("rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700").
-											Text(func() string {
-												if h.ShowUploadForm {
-													return "Close"
-												}
-												return "Upload File"
-											}()).
-											OnClick(func(ctx app.Context, e app.Event) {
-												h.ShowUploadForm = !h.ShowUploadForm
-												ctx.Update()
-											})
-									},
-								),
-								app.Button().
-									Class("rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700").
-									Text("Logout").
-									OnClick(func(ctx app.Context, e app.Event) {
-										app.Window().Get("location").Set("href", "/web/logout")
-									}),
-							),
+		app.Nav().Class("bg-gray-800 p-4").Body(
+			app.Div().Class("container mx-auto flex items-center justify-between").Body(
+				app.H1().Class("text-xl font-bold text-white").Text("Hello "+h.Auth.Data.Username),
+				app.Div().Class("flex gap-4").Body(
+					app.Button().Class("rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700").
+						Text(func() string {
+							if h.ShowCreateForm {
+								return "Close"
+							}
+							return "Create New"
+						}()).
+						OnClick(func(ctx app.Context, e app.Event) {
+							h.ShowCreateForm = !h.ShowCreateForm
+							ctx.Update()
+						}),
+					app.If(h.Auth.Data.S3Enabled,
+						func() app.UI {
+							return app.Button().Class("rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700").
+								Text(func() string {
+									if h.ShowUploadForm {
+										return "Close"
+									}
+									return "Upload File"
+								}()).
+								OnClick(func(ctx app.Context, e app.Event) {
+									h.ShowUploadForm = !h.ShowUploadForm
+									ctx.Update()
+								})
+						},
 					),
+					app.Button().Class("rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700").
+						Text("Logout").
+						OnClick(func(ctx app.Context, e app.Event) {
+							app.Window().Get("location").Set("href", "/web/logout")
+						}),
+				),
 			),
+		),
 
 		// Main Content
-		app.Main().
-			Class("container mx-auto p-4").
-			Body(
-				// Error/Connection Status
-				app.If(!h.Connected || h.Error != "",
-					func() app.UI {
-						return app.Div().
-							Class("mb-4 rounded bg-red-100 p-4 text-red-700").
-							Body(
-								app.If(!h.Connected,
-									func() app.UI {
-										return app.Span().Text("Connection lost - attempting to reconnect...")
-									},
-								).Else(
-									func() app.UI {
-										return app.Text(h.Error)
-									},
-								),
-								app.Button().
-									Class("ml-2 text-red-500 hover:text-red-700").
-									Text("Retry").
-									OnClick(func(ctx app.Context, e app.Event) {
-										h.SSE.Close()
-										h.initializeSSE(ctx)
-									}),
-							)
-					},
-				),
-
-				// Create Form
-				app.If(h.ShowCreateForm,
-					func() app.UI {
-						return h.renderCreateForm()
-					},
-				),
-
-				// Upload Form
-				app.If(h.ShowUploadForm && h.Auth.Data.S3Enabled,
-					func() app.UI {
-						return app.Div().
-							Class("mb-6").
-							Body(
-								&components.FileUpload{},
-							)
-					},
-				),
-
-				// Data Table
-				app.If(h.Loading,
-					func() app.UI {
-						return app.Div().
-							Class("flex justify-center p-8").
-							Body(
-								components.Loading("w-8 h-8"),
-							)
-					},
-				).Else(
-					func() app.UI {
-						return h.renderDataTable()
-					},
-				),
+		app.Main().Class("container mx-auto p-4").Body(
+			// Error/Connection Status
+			app.If(!h.Connected || h.Error != "",
+				func() app.UI {
+					return app.Div().Class("mb-4 rounded bg-red-100 p-4 text-red-700").Body(
+						app.If(!h.Connected, func() app.UI {
+							return app.Span().Text("Connection lost - attempting to reconnect...")
+						}).Else(
+							func() app.UI {
+								return app.Text(h.Error)
+							},
+						),
+						app.Button().Class("ml-2 text-red-500 hover:text-red-700").Text("Retry").
+							OnClick(func(ctx app.Context, e app.Event) {
+								h.SSE.Close()
+								h.initializeSSE(ctx)
+							}),
+					)
+				},
 			),
+
+			// Create Form
+			app.If(h.ShowCreateForm, func() app.UI {
+				return h.renderCreateForm()
+			}),
+
+			// Upload Form
+			app.If(h.ShowUploadForm && h.Auth.Data.S3Enabled, func() app.UI {
+				return app.Div().Class("mb-6").Body(&components.FileUpload{})
+			}),
+
+			// Data Table
+			app.If(h.Loading, func() app.UI {
+				return app.Div().Class("flex justify-center p-8").Body(
+					components.Loading("w-8 h-8"),
+				)
+			}).Else(
+				func() app.UI {
+					return h.renderDataTable()
+				},
+			),
+		),
 	)
 }
 
 func (h *Home) renderCreateForm() app.UI {
-	return app.Div().
-		Class("mb-6 rounded-lg bg-white p-4 shadow").
-		Body(
-			app.Form().
-				Class("space-y-4").
-				OnSubmit(h.handleCreate).
-				Body(
-					app.Div().Body(
-						app.Label().
-							Class("block text-sm font-medium text-gray-700").
-							For("url").
-							Text("URL"),
-						app.Input().
-							Type("url").
-							ID("url").
-							Class("mt-1 block w-full rounded-md border-gray-300 shadow-sm").
-							Placeholder("https://example.com").
-							Required(true).
-							Value(h.NewURL).
-							OnInput(func(ctx app.Context, e app.Event) {
-								h.NewURL = e.Get("target").Get("value").String()
-								ctx.Update()
-							}),
-					),
-					app.Div().Body(
-						app.Label().
-							Class("block text-sm font-medium text-gray-700").
-							For("customName").
-							Text("Custom Name (Optional)"),
-						app.Input().
-							Type("text").
-							ID("customName").
-							Class("mt-1 block w-full rounded-md border-gray-300 shadow-sm").
-							Placeholder("my-custom-url").
-							Value(h.CustomName).
-							OnInput(func(ctx app.Context, e app.Event) {
-								h.CustomName = e.Get("target").Get("value").String()
-								ctx.Update()
-							}),
-					),
-					app.Div().
-						Class("flex justify-end gap-2").
-						Body(
-							app.Button().
-								Type("button").
-								Class("rounded border px-4 py-2 text-gray-700 hover:bg-gray-50").
-								Text("Cancel").
-								OnClick(func(ctx app.Context, e app.Event) {
-									h.ShowCreateForm = false
-									ctx.Update()
-								}),
-							app.Button().
-								Type("submit").
-								Class("rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50").
-								Disabled(h.FormLoading).
-								Body(
-									app.If(h.FormLoading,
-										func() app.UI {
-											return components.Loading("w-5 h-5")
-										},
-									).Else(
-										func() app.UI {
-											return app.Text("Create")
-										},
-									),
-								),
+	return app.Div().Class("mb-6 rounded-lg bg-white p-4 shadow").Body(
+		app.Form().Class("space-y-4").OnSubmit(h.handleCreate).Body(
+			app.Div().Body(
+				app.Label().Class("block text-sm font-medium text-gray-700").For("url").Text("URL"),
+				app.Input().Type("url").ID("url").Class("mt-1 block w-full rounded-md border-gray-300 shadow-sm").
+					Placeholder("https://example.com").
+					Required(true).
+					Value(h.NewURL).
+					OnInput(func(ctx app.Context, e app.Event) {
+						h.NewURL = e.Get("target").Get("value").String()
+						ctx.Update()
+					}),
+			),
+			app.Div().Body(
+				app.Label().Class("block text-sm font-medium text-gray-700").For("customName").
+					Text("Custom Name (Optional)"),
+				app.Input().Type("text").ID("customName").Class("mt-1 block w-full rounded-md border-gray-300 shadow-sm").
+					Placeholder("my-custom-url").
+					Value(h.CustomName).
+					OnInput(func(ctx app.Context, e app.Event) {
+						h.CustomName = e.Get("target").Get("value").String()
+						ctx.Update()
+					}),
+			),
+			app.Div().Class("flex justify-end gap-2").Body(
+				app.Button().Type("button").Class("rounded border px-4 py-2 text-gray-700 hover:bg-gray-50").
+					Text("Cancel").
+					OnClick(func(ctx app.Context, e app.Event) {
+						h.ShowCreateForm = false
+						ctx.Update()
+					}),
+				app.Button().Type("submit").Class("rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50").
+					Disabled(h.FormLoading).
+					Body(
+						app.If(h.FormLoading, func() app.UI {
+							return components.Loading("w-5 h-5")
+						}).Else(
+							func() app.UI {
+								return app.Text("Create")
+							},
 						),
-				),
-		)
+					),
+			),
+		),
+	)
 }
 
 func (h *Home) renderDataTable() app.UI {
-	return app.Div().
-		Class("overflow-x-auto").
-		Body(
-			app.Table().
-				Class("min-w-full divide-y divide-gray-200").
-				Body(
-					// Table Header
-					app.THead().
-						Class("bg-gray-50").
-						Body(
-							app.Tr().Body(
-								app.Th().
-									Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
-									Text("Shorty"),
-								app.Th().
-									Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
-									Text("File"),
-								app.Th().
-									Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
-									Text("URL"),
-								app.Th().
-									Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
-									Text("Expired"),
-								app.Th().
-									Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
-									Text("Actions"),
-							),
-						),
-					// Table Body
-					app.TBody().
-						Class("divide-y divide-gray-200 bg-white").
-						Body(
-							app.Range(h.Data).Slice(func(i int) app.UI {
-								row := h.Data[i]
-								return app.Tr().Body(
-									// Shorty column with copy button
-									app.Td().
-										Class("whitespace-nowrap px-6 py-4").
-										Body(
-											app.Button().
-												Class("flex items-center gap-2 text-blue-600 hover:text-blue-800").
-												OnClick(func(ctx app.Context, e app.Event) {
-													h.copyToClipboard(fmt.Sprintf("%s/%s", types.API_BASE_URL, row.Shorty))
-												}).
-												Body(
-													app.Text(row.Shorty),
-													app.Raw(`<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+	return app.Div().Class("overflow-x-auto").Body(
+		app.Table().Class("min-w-full divide-y divide-gray-200").Body(
+			// Table Header
+			app.THead().Class("bg-gray-50").Body(
+				app.Tr().Body(
+					app.Th().Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
+						Text("Shorty"),
+					app.Th().Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
+						Text("File"),
+					app.Th().Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
+						Text("URL"),
+					app.Th().Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
+						Text("Expired"),
+					app.Th().Class("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500").
+						Text("Actions"),
+				),
+			),
+			// Table Body
+			app.TBody().Class("divide-y divide-gray-200 bg-white").Body(
+				app.Range(h.Data).Slice(func(i int) app.UI {
+					row := h.Data[i]
+					return app.Tr().Body(
+						// Shorty column with copy button
+						app.Td().Class("whitespace-nowrap px-6 py-4").Body(
+							app.Button().Class("flex items-center gap-2 text-blue-600 hover:text-blue-800").
+								OnClick(func(ctx app.Context, e app.Event) {
+									h.copyToClipboard(fmt.Sprintf("%s/%s", types.API_BASE_URL, row.Shorty))
+								}).
+								Body(
+									app.Text(row.Shorty),
+									app.Raw(`<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
 													</svg>`),
-												),
-										),
-									// File column
-									app.Td().
-										Class("whitespace-nowrap px-6 py-4").
-										Text(row.File),
-									// URL column
-									app.Td().
-										Class("max-w-xs px-6 py-4").
-										Body(
-											app.A().
-												Href(row.URL).
-												Class("block truncate text-blue-500 hover:underline").
-												Target("_blank").
-												Title(row.URL).
-												Text(row.URL),
-										),
-									// Expired column
-									app.Td().
-										Class("whitespace-nowrap px-6 py-4").
-										Text(h.formatExpiry(row.Expired)),
-									// Actions column
-									app.Td().
-										Class("whitespace-nowrap px-6 py-4").
-										Body(
-											app.Div().
-												Class("flex gap-2").
-												Body(
-													app.Button().
-														Class("rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700").
-														Text("Rename").
-														OnClick(func(ctx app.Context, e app.Event) {
-															h.handleRename(ctx, row.Shorty)
-														}),
-													app.Button().
-														Class("rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700").
-														Text("Delete").
-														OnClick(func(ctx app.Context, e app.Event) {
-															h.handleDelete(ctx, row.Shorty)
-														}),
-												),
-										),
-								)
-							}),
+								),
 						),
-				),
-		)
+						// File column
+						app.Td().Class("whitespace-nowrap px-6 py-4").Text(row.File),
+						// URL column
+						app.Td().Class("max-w-xs px-6 py-4").Body(
+							app.A().Href(row.URL).Class("block truncate text-blue-500 hover:underline").
+								Target("_blank").
+								Title(row.URL).
+								Text(row.URL),
+						),
+						// Expired column
+						app.Td().Class("whitespace-nowrap px-6 py-4").Text(h.formatExpiry(row.Expired)),
+						// Actions column
+						app.Td().Class("whitespace-nowrap px-6 py-4").Body(
+							app.Div().Class("flex gap-2").Body(
+								app.Button().Class("rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700").
+									Text("Rename").
+									OnClick(func(ctx app.Context, e app.Event) {
+										h.handleRename(ctx, row.Shorty)
+									}),
+								app.Button().Class("rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700").
+									Text("Delete").
+									OnClick(func(ctx app.Context, e app.Event) {
+										h.handleDelete(ctx, row.Shorty)
+									}),
+							),
+						),
+					)
+				}),
+			),
+		),
+	)
 }

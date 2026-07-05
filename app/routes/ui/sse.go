@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func writeSSEEvent(w *bufio.Writer, event string, data string) error {
+func writeSSEEvent(w *bufio.Writer, event, data string) error {
 	if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data); err != nil {
 		return err
 	}

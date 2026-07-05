@@ -33,9 +33,7 @@ func LoginUserPass(ctx fiber.Ctx) error {
 
 	// Validate credentials
 	if req.Username != config.Use.App.Auth.User || req.Password != config.Use.App.Auth.Password {
-		log.Warn().
-			Str("username", req.Username).
-			Msg("failed login attempt with incorrect credentials")
+		log.Warn().Str("username", req.Username).Msg("failed login attempt with incorrect credentials")
 		return ctx.Status(fiber.StatusUnauthorized).JSON(types.Response{
 			Error:   true,
 			Message: "Invalid username or password",

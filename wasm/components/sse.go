@@ -126,9 +126,7 @@ func (h *SSEHandler) attachEventListener(event string, callback func(string)) {
 }
 
 func (h *SSEHandler) showErrorNotification() {
-	notification := app.Window().
-		Get("document").
-		Call("createElement", "div")
+	notification := app.Window().Get("document").Call("createElement", "div")
 
 	notification.Set("className", "fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded shadow-lg z-50")
 	notification.Set("innerHTML", `
@@ -139,10 +137,7 @@ func (h *SSEHandler) showErrorNotification() {
         </div>
     `)
 
-	app.Window().
-		Get("document").
-		Get("body").
-		Call("appendChild", notification)
+	app.Window().Get("document").Get("body").Call("appendChild", notification)
 
 	go func() {
 		time.Sleep(10 * time.Second)

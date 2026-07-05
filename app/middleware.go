@@ -40,11 +40,7 @@ func verifyKey() func(c fiber.Ctx) error {
 		Extractor: extractors.FromCustom("Bearer", customBearerExtractor),
 		Validator: func(c fiber.Ctx, key string) (bool, error) {
 			if err := verifyAPIKey(c.Context(), key); err != nil {
-				log.Error().
-					Caller().
-					Err(err).
-					Str("path", c.Path()).
-					Str("hash", key).
+				log.Error().Caller().Err(err).Str("path", c.Path()).Str("hash", key).
 					Send()
 				return false, keyauth.ErrMissingOrMalformedAPIKey
 			}
@@ -67,10 +63,7 @@ func keyAuthErrorHandler(c fiber.Ctx, err error) error {
 	authHeader := c.Get(fiber.HeaderAuthorization)
 
 	// Log with detailed information
-	log.Error().
-		Caller().
-		Str("error_type", fmt.Sprintf("%T", err)).
-		Str("error_msg", err.Error()).
+	log.Error().Caller().Str("error_type", fmt.Sprintf("%T", err)).Str("error_msg", err.Error()).
 		Str("UserAgent", ua).
 		Str("IP", ip).
 		Str("Method", method).

@@ -49,7 +49,7 @@ func Get(ctx fiber.Ctx) error {
 			Creds:  credentials.NewStaticV4(s3Creds.Access, s3Creds.Secret, ""),
 			Secure: parsedURL.Scheme == "https",
 		})
-		
+
 		if err != nil {
 			log.Error().Err(err).Msg("failed to initialize S3 client")
 			return ctx.Redirect().Status(fiber.StatusPermanentRedirect).To(realurl)

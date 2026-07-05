@@ -3,13 +3,30 @@
 	import { toast } from '$lib/components/swal';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { browser } from '$app/environment';
+
+	const FCAPTCHA_SERVER = 'https://captcha.nusatek.dev';
+	const FCAPTCHA_SITE_KEY = 'default';
+	const CAPTCHA_SCORE_THRESHOLD = 0.3;
 
 	let loading = false;
 	let username = '';
 	let password = '';
 	let authMethod: 'oauth' | 'userpass' | 'none' = 'none';
+	let captchaReady = false;
 
 	onMount(async () => {
+		if (browser && !document.querySelector('script[src*="captcha.nusatek.dev"]')) {
+			const script = document.createElement('script');
+			script.src = `${FCAPTCHA_SERVER}/fcaptcha.js`;
+			script.async = true;
+			script.onload = () => {
+				(window as any).FCaptcha.configure({ serverUrl: FCAPTCHA_SERVER });
+				captchaReady = true;
+			};
+			document.head.appendChild(script);
+		}
+
 		// Check for error parameter in URL
 		const error = $page.url.searchParams.get('error');
 		if (error) {
@@ -36,9 +53,28 @@
 		}
 	});
 
+	async function checkCaptchaScore(): Promise<boolean> {
+		if (!captchaReady || !(window as any).FCaptcha) return true;
+		try {
+			const result = await (window as any).FCaptcha.execute(FCAPTCHA_SITE_KEY, { action: 'login' });
+			if (result.score < CAPTCHA_SCORE_THRESHOLD) {
+				toast.error('Security Check', 'Bot detected. Please try again.');
+				return false;
+			}
+			return true;
+		} catch {
+			return true;
+		}
+	}
+
 	async function handleOAuthLogin() {
 		try {
 			loading = true;
+
+			if (!(await checkCaptchaScore())) {
+				return;
+			}
+
 			const response = await fetch(`${API_BASE_URL}/auth/gitlab`);
 			const data = await response.json();
 
@@ -70,6 +106,11 @@
 
 		try {
 			loading = true;
+
+			if (!(await checkCaptchaScore())) {
+				return;
+			}
+
 			const response = await fetch(`${API_BASE_URL}/auth/login`, {
 				method: 'POST',
 				headers: {

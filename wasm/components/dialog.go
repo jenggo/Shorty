@@ -21,7 +21,7 @@ func Confirm(title string) bool {
 	return <-result
 }
 
-func Prompt(title string, defaultValue string) string {
+func Prompt(title, defaultValue string) string {
 	result := make(chan string)
 
 	app.Window().Get("Swal").Call("fire", map[string]any{
@@ -43,7 +43,7 @@ func Prompt(title string, defaultValue string) string {
 	return <-result
 }
 
-func ShowToast(title string, message string, icon string) {
+func ShowToast(title, message, icon string) {
 	app.Window().Get("Swal").Call("fire", map[string]any{
 		"title":             title,
 		"text":              message,

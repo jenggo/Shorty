@@ -62,7 +62,11 @@ func RunServer() (app *fiber.App, err error) {
 		MaxAge:           300,
 	}))
 	app.Use(favicon.New())
-	app.Use(helmet.New())
+	app.Use(helmet.New(helmet.Config{
+		CrossOriginEmbedderPolicy: "unsafe-none",
+		CrossOriginOpenerPolicy:   "unsafe-none",
+		CrossOriginResourcePolicy: "cross-origin",
+	}))
 	app.Use(earlydata.New())
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	// app.Use(limiter.New(limiter.Config{

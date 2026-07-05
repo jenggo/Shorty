@@ -180,60 +180,39 @@ func (f *FileUpload) reset(ctx app.Context) {
 }
 
 func (f *FileUpload) Render() app.UI {
-	return app.Div().
-		Class("rounded-lg bg-white p-6 shadow-md").
-		Body(
-			app.H2().
-				Class("mb-4 text-xl font-semibold").
-				Text("Upload File"),
+	return app.Div().Class("rounded-lg bg-white p-6 shadow-md").Body(
+		app.H2().Class("mb-4 text-xl font-semibold").Text("Upload File"),
 
-			app.P().
-				Class("mb-4 text-sm text-gray-600").
-				Text("Maximum file size: 100MB"),
+		app.P().Class("mb-4 text-sm text-gray-600").Text("Maximum file size: 100MB"),
 
-			app.If(f.error != "",
-				func() app.UI {
-					return app.Div().
-						Class("mb-4 rounded bg-red-100 p-3 text-red-700").
-						Text(f.error)
-				},
-			),
+		app.If(f.error != "",
+			func() app.UI {
+				return app.Div().Class("mb-4 rounded bg-red-100 p-3 text-red-700").Text(f.error)
+			},
+		),
 
-			app.Div().
-				Class("mb-4").
-				Body(
-					app.Input().
-						Type("file").
-						Class("block w-full text-sm text-gray-500 file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 file:transition-colors file:duration-200 hover:cursor-pointer hover:file:bg-blue-100").
-						OnChange(f.handleFileSelect).
-						Disabled(f.uploading || f.checking),
-				),
+		app.Div().Class("mb-4").Body(
+			app.Input().Type("file").Class("block w-full text-sm text-gray-500 file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 file:transition-colors file:duration-200 hover:cursor-pointer hover:file:bg-blue-100").
+				OnChange(f.handleFileSelect).
+				Disabled(f.uploading || f.checking),
+		),
 
-			app.If(f.checking,
-				func() app.UI {
-					return app.P().
-						Class("text-sm text-gray-600").
-						Text("Checking filename availability...")
-				},
-			),
+		app.If(f.checking,
+			func() app.UI {
+				return app.P().Class("text-sm text-gray-600").Text("Checking filename availability...")
+			},
+		),
 
-			app.If(f.uploading,
-				func() app.UI {
-					return app.Div().
-						Class("mb-4").
-						Body(
-							app.Div().
-								Class("h-2 w-full rounded-full bg-gray-200").
-								Body(
-									app.Div().
-										Class("h-2 rounded-full bg-blue-600 transition-all duration-300").
-										Style("width", fmt.Sprintf("%d%%", f.progress)),
-								),
-							app.P().
-								Class("mt-1 text-sm text-gray-600").
-								Text(fmt.Sprintf("%d%% uploaded", f.progress)),
-						)
-				},
-			),
-		)
+		app.If(f.uploading,
+			func() app.UI {
+				return app.Div().Class("mb-4").Body(
+					app.Div().Class("h-2 w-full rounded-full bg-gray-200").Body(
+						app.Div().Class("h-2 rounded-full bg-blue-600 transition-all duration-300").
+							Style("width", fmt.Sprintf("%d%%", f.progress)),
+					),
+					app.P().Class("mt-1 text-sm text-gray-600").Text(fmt.Sprintf("%d%% uploaded", f.progress)),
+				)
+			},
+		),
+	)
 }

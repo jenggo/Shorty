@@ -1,8 +1,6 @@
 package utils
 
-import (
-	"math/rand/v2"
-)
+import "math/rand/v2"
 
 // copy from https://github.com/xyproto/randomstring/blob/main/randomstring.go
 

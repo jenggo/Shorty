@@ -34,42 +34,32 @@ func (l *Login) OnMount(ctx app.Context) {
 }
 
 func (l *Login) Render() app.UI {
-	return app.Div().
-		Class("flex min-h-screen items-center justify-center bg-gray-50").
+	return app.Div().Class("flex min-h-screen items-center justify-center bg-gray-50").
 		Body(
-			app.Div().
-				Class("w-96 rounded-lg bg-white p-8 shadow-md").
-				Body(
-					// Add heading
-					app.H2().
-						Class("mb-6 text-center text-2xl font-bold text-gray-800").
-						Text("Login to Shorty"),
+			app.Div().Class("w-96 rounded-lg bg-white p-8 shadow-md").Body(
+				// Add heading
+				app.H2().Class("mb-6 text-center text-2xl font-bold text-gray-800").Text("Login to Shorty"),
 
-					// Add button container
-					app.Div().
-						Class("space-y-4").
+				// Add button container
+				app.Div().Class("space-y-4").Body(
+					app.Button().ID("button-login").Class("flex w-full items-center justify-center rounded-md px-4 py-2 text-white disabled:opacity-50").
+						OnClick(l.HandleLogin).
 						Body(
-							app.Button().
-								ID("button-login").
-								Class("flex w-full items-center justify-center rounded-md px-4 py-2 text-white disabled:opacity-50").
-								OnClick(l.HandleLogin).
-								Body(
-									app.If(l.loading,
-										func() app.UI {
-											return app.Div().
-												Class("mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent")
-										},
-									).Else(
-										func() app.UI {
-											return app.Raw(`<svg class="mr-2 h-5 w-5" viewBox="0 0 586 559">
+							app.If(l.loading,
+								func() app.UI {
+									return app.Div().Class("mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent")
+								},
+							).Else(
+								func() app.UI {
+									return app.Raw(`<svg class="mr-2 h-5 w-5" viewBox="0 0 586 559">
                                                 <path fill="currentColor" d="M461.17 301.83l-18.91-58.12-37.42-115.28c-1.92-5.9-7.15-10.05-13.37-10.05s-11.45 4.15-13.37 10.05l-37.42 115.28h-126.5l-37.42-115.28c-1.92-5.9-7.15-10.05-13.37-10.05s-11.45 4.15-13.37 10.05l-37.42 115.28-18.91 58.12c-1.72 5.3.12 11.11 4.72 14.38l212.49 154.41 212.49-154.41c4.6-3.27 6.44-9.08 4.72-14.38"/>
                                             </svg>`)
-										},
-									),
-									app.Text("Sign in with Repo Nusatek"),
-								),
+								},
+							),
+							app.Text("Sign in with Repo Nusatek"),
 						),
 				),
+			),
 		)
 }
 
