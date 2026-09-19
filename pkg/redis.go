@@ -28,19 +28,26 @@ var Redis, RedisAuth *redis
 const (
 	s3CachePrefix = "s3_exists:"
 	s3CredPrefix  = "s3_cred:"
+
+	// redisKeepAlive sets both the TCP keep-alive interval and valkey-go's idle
+	// background-PING gap. valkey-go defaults this to 1s, which pings every idle
+	// connection once per second; 30s quiets an idle deployment at the cost of
+	// slower detection of half-open connections (~10x the interval on Linux).
+	redisKeepAlive = 30 * time.Second
 )
 
-func NewRedis(useDB ...int) (*redis, error) {
-	db := config.Use.Redis.DB.Main
-	if len(useDB) > 0 {
-		db = useDB[0]
-	}
-
+// NewClient builds a valkey client for the given logical database using shorty's
+// connection settings, including the keep-alive tuning in redisKeepAlive. Use it
+// when handing a client to a driver that cannot configure the connection itself
+// (e.g. a storage.Storage built with valkey.NewFromConnection). Callers own the
+// returned client and must Close it.
+func NewClient(db int) (valkey.Client, error) {
 	addr := net.JoinHostPort(config.Use.Redis.Host, config.Use.Redis.Port)
 
 	opt := valkey.ClientOption{
 		InitAddress: []string{addr},
 		SelectDB:    db,
+		Dialer:      net.Dialer{KeepAlive: redisKeepAlive},
 	}
 
 	if config.Use.Redis.Password != "" {
@@ -60,6 +67,20 @@ func NewRedis(useDB ...int) (*redis, error) {
 	if err := client.Do(ctx, client.B().Ping().Build()).Error(); err != nil {
 		log.Error().Caller().Err(err).Send()
 		client.Close()
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func NewRedis(useDB ...int) (*redis, error) {
+	db := config.Use.Redis.DB.Main
+	if len(useDB) > 0 {
+		db = useDB[0]
+	}
+
+	client, err := NewClient(db)
+	if err != nil {
 		return nil, err
 	}
 

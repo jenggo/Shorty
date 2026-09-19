@@ -103,8 +103,7 @@ func RunServer() (app *fiber.App, err error) {
 
 func errHandler(c fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
-	var e *fiber.Error
-	if errors.As(err, &e) {
+	if e, ok := errors.AsType[*fiber.Error](err); ok {
 		code = e.Code
 	}
 

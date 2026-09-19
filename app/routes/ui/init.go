@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"shorty/config"
+	"shorty/pkg"
 	"shorty/utils"
 
 	"github.com/gofiber/fiber/v3/middleware/session"
@@ -50,12 +51,15 @@ func getOAuthConfig(path string) *oauth2.Config {
 }
 
 func InitStore() {
-	valkeyAddrs := []string{config.Use.Redis.Host + ":" + config.Use.Redis.Port}
-	redisStore := valkey.New(valkey.Config{
-		InitAddress: valkeyAddrs,
-		Password:    config.Use.Redis.Password,
-		SelectDB:    config.Use.Redis.DB.Auth + 1,
-	})
+	// Build the session-store client via pkg so it picks up shorty's connection
+	// tuning (see pkg.redisKeepAlive). gofiber's driver does not expose Dialer in
+	// its Config, but NewFromConnection lets us inject a client we configured
+	// ourselves, so the session connections stop pinging at 1 Hz.
+	sessionClient, err := pkg.NewClient(config.Use.Redis.DB.Auth + 1)
+	if err != nil {
+		log.Fatal().Err(err).Send()
+	}
+	redisStore := valkey.NewFromConnection(sessionClient)
 
 	sessionStore = session.NewStore(session.Config{
 		Storage:         redisStore,
