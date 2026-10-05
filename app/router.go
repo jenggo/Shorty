@@ -19,6 +19,16 @@ func router(app *fiber.App) {
 	ui.InitStore()
 	ui.InitOAuth()
 
+	// Per-IP limits, built once so each limiter shares one storage-backed
+	// counter set. Each scope gets its own key prefix.
+	redirectLimit := rateLimiter(ui.RedisStorage, "redirect", 100)
+	createLimit := rateLimiter(ui.RedisStorage, "create", 10)
+	writeLimit := rateLimiter(ui.RedisStorage, "write", 20)
+	listLimit := rateLimiter(ui.RedisStorage, "list", 20)
+	authLimit := rateLimiter(ui.RedisStorage, "auth", 5)
+	uploadLimit := rateLimiter(ui.RedisStorage, "upload", 20)
+	checkLimit := rateLimiter(ui.RedisStorage, "check", 60)
+
 	app.Use("/web", static.New("web", static.Config{Compress: true}))
 	app.Get("/web/auth/gitlab", ui.OauthLogin)
 	app.Get("/web/auth/gitlab/callback", ui.Callback)
@@ -34,33 +44,33 @@ func router(app *fiber.App) {
 		},
 	}))
 
-	app.Get("/auth/gitlab", ui.OauthLogin)
-	app.Get("/auth/gitlab/callback", ui.Callback)
+	app.Get("/auth/gitlab", authLimit, ui.OauthLogin)
+	app.Get("/auth/gitlab/callback", authLimit, ui.Callback)
 	app.Get("/auth/config", ui.GetAuthConfig)
-	app.Post("/auth/login", ui.LoginUserPass)
+	app.Post("/auth/login", authLimit, ui.LoginUserPass)
 	app.Get("/auth/check", ui.CheckSession)
 	app.Get("/login", func(ctx fiber.Ctx) error { return ctx.Render("login", nil) })
 	app.Get("/logout", ui.Logout)
-	app.Post("/shorty", ui.Create)
-	app.Post("/check-filename", ui.CheckFilename)
+	app.Post("/shorty", createLimit, ui.Create)
+	app.Post("/check-filename", checkLimit, ui.CheckFilename)
 	app.Get("/events", ui.SSE) // SSE
-	app.Patch("/:oldName/:newName", ui.Change)
-	app.Delete("/:shorty", ui.Delete)
+	app.Patch("/:oldName/:newName", writeLimit, ui.Change)
+	app.Delete("/:shorty", writeLimit, ui.Delete)
 
 	if config.Use.S3.Enable {
-		app.Post("/upload", ui.Upload)
+		app.Post("/upload", uploadLimit, ui.Upload)
 	}
 
 	// wasm
 	// app.Get("/web/*", static.New("web", static.Config{Compress: true}))
 
 	// Get real url
-	app.Get("/:shorty", routes.Get)
+	app.Get("/:shorty", redirectLimit, routes.Get)
 
 	// API group
 	v1 := app.Group("/v1", verifyKey())
-	v1.Post("/shorty", routes.Shorten)             // Create short url
-	v1.Delete("/:shorty", routes.Delete)           // Delete url
-	v1.Patch("/:oldName/:newName?", routes.Change) // Rename url
-	v1.Get("/list", routes.List)                   // List all urls
+	v1.Post("/shorty", createLimit, routes.Shorten)            // Create short url
+	v1.Delete("/:shorty", writeLimit, routes.Delete)           // Delete url
+	v1.Patch("/:oldName/:newName?", writeLimit, routes.Change) // Rename url
+	v1.Get("/list", listLimit, routes.List)                    // List all urls
 }

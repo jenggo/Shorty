@@ -14,7 +14,7 @@
 
 			// If no auth methods are configured, allow access without login
 			if (!data.data?.oauth && !data.data?.userpass) {
-				auth.login('Guest', data.data?.s3Enabled || false);
+				auth.login('Guest', data.data?.s3Enabled || false, data.data?.allowPermanent ?? true);
 				return true;
 			}
 			return false;
@@ -38,7 +38,7 @@
 			const data = await response.json();
 
 			if (!data.error && data.data?.username) {
-				auth.login(data.data.username, data.data.s3Enabled);
+				auth.login(data.data.username, data.data.s3Enabled, data.data.allowPermanent ?? true);
 			} else {
 				auth.logout();
 				if (window.location.pathname !== '/login') {

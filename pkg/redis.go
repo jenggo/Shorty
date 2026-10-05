@@ -206,7 +206,7 @@ func (r *redis) Get(ctx context.Context, key string) (string, error) {
 }
 
 func (r *redis) processScannedKey(ctx context.Context, key string) (types.Shorten, bool) {
-	if strings.HasPrefix(key, s3CachePrefix) || strings.HasPrefix(key, s3CredPrefix) {
+	if strings.HasPrefix(key, s3CachePrefix) || strings.HasPrefix(key, s3CredPrefix) || strings.HasPrefix(key, ghReleaseCachePrefix) {
 		return types.Shorten{}, false
 	}
 
@@ -271,14 +271,20 @@ func (r *redis) GetAll(ctx context.Context) (datas []types.Shorten, err error) {
 	return datas, nil
 }
 
+// checkIsS3File reports the object name when input points at an object that
+// exists in the configured bucket, and "" otherwise. StatObject is used rather
+// than Get so the object body is never downloaded just to test existence.
 func checkIsS3File(input string) string {
+	if !config.Use.S3.Enable {
+		return ""
+	}
+
 	gf := getFile(input)
 	if gf == "" {
 		return ""
 	}
 
-	byteFile, err := utils.Storage.Get(gf)
-	if err == nil || byteFile != nil {
+	if _, err := utils.Storage.Conn().StatObject(context.Background(), config.Use.S3.Bucket, gf, minio.StatObjectOptions{}); err != nil {
 		return ""
 	}
 
@@ -286,9 +292,10 @@ func checkIsS3File(input string) string {
 }
 
 func getFile(input string) string {
+	// Not every stored value is a URL, so anything that fails to parse is simply
+	// not an S3 object. This is routine, not an error worth logging.
 	u, err := url.Parse(input)
 	if err != nil {
-		log.Error().Caller().Err(err).Send()
 		return ""
 	}
 

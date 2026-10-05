@@ -25,10 +25,12 @@ class ApiClient {
 		return data;
 	}
 
-	async createShorty(url: string, customName?: string) {
+	async createShorty(url: string, customName?: string, noExpiration = false) {
 		return await this.fetchWithCredentials(`${API_BASE_URL}/shorty`, {
 			method: 'POST',
-			body: JSON.stringify({ url, shorty: customName })
+			// expired is a Go time.Duration, so it is sent as nanoseconds.
+			// 0 asks the server for a link that never expires.
+			body: JSON.stringify({ url, shorty: customName, expired: noExpiration ? 0 : undefined })
 		});
 	}
 

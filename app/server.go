@@ -69,6 +69,7 @@ func RunServer() (app *fiber.App, err error) {
 	}))
 	app.Use(earlydata.New())
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
+	app.Use(sentryTracing)
 	// app.Use(limiter.New(limiter.Config{
 	// 	Expiration:             5 * time.Minute,
 	// 	LimiterMiddleware:      limiter.SlidingWindow{},

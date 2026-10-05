@@ -31,13 +31,7 @@ func validateSession(ctx fiber.Ctx, returnName ...bool) (*string, error) {
 func CheckSession(ctx fiber.Ctx) error {
 	// If no authentication is configured, allow access
 	if !IsOAuthConfigured() && !IsUserPassConfigured() {
-		return ctx.JSON(types.Response{
-			Error: false,
-			Data: fiber.Map{
-				"username":  "Guest",
-				"s3Enabled": config.Use.S3.Enable,
-			},
-		})
+		return ctx.JSON(types.Response{Error: false, Data: sessionInfo("Guest")})
 	}
 
 	name, err := validateSession(ctx, true)
@@ -55,11 +49,14 @@ func CheckSession(ctx fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(types.Response{
-		Error: false,
-		Data: fiber.Map{
-			"username":  name,
-			"s3Enabled": config.Use.S3.Enable,
-		},
-	})
+	return ctx.JSON(types.Response{Error: false, Data: sessionInfo(*name)})
+}
+
+// sessionInfo is the payload the web UI reads to decide which controls to show.
+func sessionInfo(username string) fiber.Map {
+	return fiber.Map{
+		"username":       username,
+		"s3Enabled":      config.Use.S3.Enable,
+		"allowPermanent": config.Use.App.AllowPermanent,
+	}
 }

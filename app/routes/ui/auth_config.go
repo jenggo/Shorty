@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"shorty/config"
 	"shorty/types"
 
 	"github.com/gofiber/fiber/v3"
@@ -12,8 +13,9 @@ func GetAuthConfig(ctx fiber.Ctx) error {
 	return ctx.JSON(types.Response{
 		Error: false,
 		Data: fiber.Map{
-			"oauth":    authMethods["oauth"],
-			"userpass": authMethods["userpass"],
+			"oauth":          authMethods["oauth"],
+			"userpass":       authMethods["userpass"],
+			"allowPermanent": config.Use.App.AllowPermanent,
 		},
 	})
 }

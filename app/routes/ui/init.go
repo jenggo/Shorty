@@ -18,6 +18,9 @@ import (
 var (
 	sessionStore = session.NewStore()
 	oauthConfig  *oauth2.Config
+	// RedisStorage is the session store's valkey connection, shared so the rate
+	// limiter does not open a second set of connections.
+	RedisStorage *valkey.Storage
 	// baseURL      string
 )
 
@@ -59,10 +62,10 @@ func InitStore() {
 	if err != nil {
 		log.Fatal().Err(err).Send()
 	}
-	redisStore := valkey.NewFromConnection(sessionClient)
+	RedisStorage = valkey.NewFromConnection(sessionClient)
 
 	sessionStore = session.NewStore(session.Config{
-		Storage:         redisStore,
+		Storage:         RedisStorage,
 		AbsoluteTimeout: 168 * time.Hour,
 		CookieSecure:    true,
 		CookieHTTPOnly:  true,

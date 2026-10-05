@@ -19,6 +19,7 @@
 	let newUrl = '';
 	// biome-ignore lint: false positive
 	let customName = '';
+	let noExpiration = false;
 	let formLoading = false;
 	// biome-ignore lint: false positive
 	let showCreateForm = false;
@@ -68,8 +69,9 @@
 	async function handleCreate() {
 		try {
 			formLoading = true;
-			await api.createShorty(newUrl, customName || undefined);
+			await api.createShorty(newUrl, customName || undefined, noExpiration);
 			newUrl = '';
+			noExpiration = false;
 			toast.success('Success', 'Shorty created successfully');
 		} catch (err) {
 			toast.error('Error', err instanceof Error ? err.message : 'Failed to create short URL');
@@ -128,6 +130,10 @@
 	function formatExpiry(nanoseconds: string): string {
 		const secs = Number.parseInt(nanoseconds) / 1e9;
 
+		// A negative TTL is Redis reporting that the key has no expiry at all.
+		if (secs < 0) {
+			return 'Never';
+		}
 		if (secs < 60) {
 			return `${Math.round(secs)}s`;
 		}
@@ -217,6 +223,21 @@
 						placeholder="my-custom-url"
 					/>
 				</div>
+				{#if $auth.allowPermanent}
+					<div class="flex items-center gap-2">
+						<input
+							id="noExpiration"
+							name="noExpiration"
+							type="checkbox"
+							bind:checked={noExpiration}
+							class="h-4 w-4 rounded border-gray-300 text-blue-600"
+						/>
+						<label for="noExpiration" class="text-sm font-medium text-gray-700">
+							No expiration
+						</label>
+						<span class="text-sm text-gray-500">— the link never expires</span>
+					</div>
+				{/if}
 				<div class="flex justify-end gap-2">
 					<button
 						type="button"

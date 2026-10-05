@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 
+	"shorty/config"
 	"shorty/pkg"
 	"shorty/types"
 	"shorty/utils"
@@ -23,6 +24,10 @@ func Shorten(ctx fiber.Ctx) error {
 
 	// Check that url
 	cc := client.New()
+	// fasthttp's default 4KB read buffer is smaller than the response headers
+	// some hosts return (GitHub's CSP headers alone exceed it), which surfaces
+	// as a read error on an otherwise reachable URL.
+	cc.FasthttpClient().ReadBufferSize = 64 * 1024
 	testUrl, err := cc.Head(body.Url)
 	if err != nil {
 		return fmt.Errorf("error when reach %s: %w", body.Url, err)
@@ -35,6 +40,13 @@ func Shorten(ctx fiber.Ctx) error {
 
 	if body.Shorty == "" {
 		body.Shorty = utils.HumanFriendlyEnglishString(8)
+	}
+
+	// Permanent links are opt-in. When they are disallowed, a request without an
+	// expiry falls back to the default instead of being rejected, so clients that
+	// never send one keep working.
+	if body.Expired <= 0 && !config.Use.App.AllowPermanent {
+		body.Expired = config.Use.App.DefaultExpired
 	}
 
 	// Check if S3 credentials are provided

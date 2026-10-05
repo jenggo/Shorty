@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"errors"
 	"net/url"
 	"strings"
 	"time"
@@ -21,6 +22,12 @@ func Get(ctx fiber.Ctx) error {
 	realurl, err := pkg.Redis.Get(ctx.Context(), shorturl)
 	if err != nil {
 		return ctx.SendStatus(fiber.StatusNotFound)
+	}
+
+	// A link pointing at a GitHub repo's releases resolves to the download URL
+	// of its latest linux/x86_64 asset instead of redirecting to the repo.
+	if pkg.IsReleaseURL(realurl) {
+		return redirectLatestRelease(ctx, shorturl, realurl)
 	}
 
 	// Check if this is an S3 URL with credentials
@@ -75,4 +82,25 @@ func Get(ctx fiber.Ctx) error {
 
 	// No S3 credentials, just redirect to the stored URL
 	return ctx.Redirect().Status(fiber.StatusPermanentRedirect).To(realurl)
+}
+
+// redirectLatestRelease sends the visitor to the download URL of the latest
+// release's linux/x86_64 asset, mapping resolution failures onto statuses.
+func redirectLatestRelease(ctx fiber.Ctx, shorty, rawURL string) error {
+	asset, err := pkg.LatestReleaseAsset(ctx.Context(), rawURL)
+	if err != nil {
+		log.Error().Err(err).Str("shorty", shorty).Str("url", rawURL).Send()
+
+		status := fiber.StatusBadGateway
+		switch {
+		case errors.Is(err, pkg.ErrNoRelease), errors.Is(err, pkg.ErrNoAsset):
+			status = fiber.StatusNotFound
+		case errors.Is(err, pkg.ErrRateLimited):
+			status = fiber.StatusServiceUnavailable
+		}
+
+		return ctx.SendStatus(status)
+	}
+
+	return ctx.Redirect().Status(fiber.StatusFound).To(asset)
 }
